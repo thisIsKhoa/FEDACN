@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    color-scheme: light;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #F8FAFC;
+}
+
+.fixture-loading {
+    animation: pulse 1.2s ease-in-out infinite;
+}

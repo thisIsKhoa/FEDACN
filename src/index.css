@@ -4,10 +4,50 @@
 
 :root {
     color-scheme: light;
+    --bg-base: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-surface-hover: #F1F3F5;
+
+    --text-main: #1C1E21;
+    --text-secondary: #687076;
+    --border-subtle: #E6E8EB;
+
+    --brand-primary: #3B82F6;
+    --brand-primary-hover: #2563EB;
+
+    --state-success-bg: #DCFCE7;
+    --state-success-solid: #22C55E;
+    --state-warning-bg: #FEF3C7;
+    --state-warning-solid: #F59E0B;
+    --state-neutral-bg: #E5E7EB;
+    --state-neutral-solid: #6B7280;
+
+    --overlay-bg: rgba(255, 255, 255, 0.9);
+    --shadow-color: #0f172a;
 }
 
 html.dark {
     color-scheme: dark;
+    --bg-base: #0F172A;
+    --bg-surface: #1E293B;
+    --bg-surface-hover: #334155;
+
+    --text-main: #EDEDEF;
+    --text-secondary: #9CA3AF;
+    --border-subtle: #2D313A;
+
+    --brand-primary: #3B82F6;
+    --brand-primary-hover: #60A5FA;
+
+    --state-success-bg: #14532D;
+    --state-success-solid: #22C55E;
+    --state-warning-bg: #78350F;
+    --state-warning-solid: #F59E0B;
+    --state-neutral-bg: #374151;
+    --state-neutral-solid: #9CA3AF;
+
+    --overlay-bg: rgba(28, 30, 36, 0.9);
+    --shadow-color: #020617;
 }
 
 html,
@@ -20,9 +60,27 @@ body {
     margin: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    background: #F8FAFC;
+    background: var(--bg-base);
+    color: var(--text-main);
 }
 
 .fixture-loading {
     animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes seatPulse {
+    0% {
+        opacity: 0.88;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+
+    100% {
+        opacity: 0.88;
+        transform: scale(1);
+    }
 }

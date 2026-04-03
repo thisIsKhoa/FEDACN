@@ -8,65 +8,61 @@ export const SPACE_COLOR: Record<string, string> = {
 };
 
 export const floorPlanLevel1Zones: FloorPlanZone[] = [
-  { id: 'leadership', name: 'Senior Leadership', color: '#818CF8', bgColor: 'rgba(99, 102, 241, 0.13)', x: 20, y: 20, w: 300, h: 200 },
-  { id: 'neutral', name: 'Entry, Reception & Meetings', color: '#CBD5E1', bgColor: 'rgba(203, 213, 225, 0.28)', x: 340, y: 20, w: 600, h: 200 },
-  { id: 'sales', name: 'Sales', color: '#93C5FD', bgColor: 'rgba(147, 197, 253, 0.17)', x: 20, y: 250, w: 300, h: 350 },
-  { id: 'engineering', name: 'Engineering', color: '#86EFAC', bgColor: 'rgba(134, 239, 172, 0.16)', x: 340, y: 250, w: 290, h: 350 },
-  { id: 'marketing', name: 'Marketing', color: '#FDBA74', bgColor: 'rgba(253, 186, 116, 0.16)', x: 650, y: 250, w: 290, h: 350 },
+  { id: 'leadership', name: 'Senior Leadership', color: '#818CF8', bgColor: 'rgba(99, 102, 241, 0.13)', x: 20, y: 20, w: 330, h: 210 },
+  { id: 'neutral', name: 'Reception & Meeting Pods', color: '#CBD5E1', bgColor: 'rgba(203, 213, 225, 0.28)', x: 370, y: 20, w: 590, h: 210 },
+  { id: 'sales', name: 'Hot Desk Zone', color: '#93C5FD', bgColor: 'rgba(147, 197, 253, 0.17)', x: 20, y: 280, w: 285, h: 300 },
+  { id: 'engineering', name: 'Dedicated Desk Zone', color: '#86EFAC', bgColor: 'rgba(134, 239, 172, 0.16)', x: 347, y: 280, w: 285, h: 300 },
+  { id: 'marketing', name: 'Private Office Zone', color: '#FDBA74', bgColor: 'rgba(253, 186, 116, 0.16)', x: 674, y: 280, w: 285, h: 300 },
 ];
 
 export const floorPlanLevel1Items: FloorPlanItem[] = [
   // Senior Leadership zone
-  { id: 'r1', name: 'Board Room', type: 'room', capacity: 12, status: 'available', x: 40, y: 50, w: 260, h: 140, zone: 'leadership' },
-  
-  // Board Room zone - meeting areas
-  { id: 'r2', name: 'Meeting 01', type: 'room', capacity: 8, status: 'occupied', x: 360, y: 50, w: 120, h: 90, zone: 'neutral' },
-  { id: 'r3', name: 'Meeting 02', type: 'room', capacity: 6, status: 'pending', x: 490, y: 50, w: 120, h: 90, zone: 'neutral' },
-  
-  // Reception zone
-  { id: 'r4', name: 'Reception', type: 'room', capacity: 4, status: 'available', x: 670, y: 50, w: 250, h: 140, zone: 'neutral' },
-  
-  // Sales zone - desks
-  { id: 'd1', name: 'Sales 01', type: 'desk', capacity: 1, status: 'available', x: 50, y: 290, w: 50, h: 50, label: 'S1', zone: 'sales' },
-  { id: 'd2', name: 'Sales 02', type: 'desk', capacity: 1, status: 'occupied', x: 120, y: 290, w: 50, h: 50, label: 'S2', zone: 'sales' },
-  { id: 'd3', name: 'Sales 03', type: 'desk', capacity: 1, status: 'available', x: 190, y: 290, w: 50, h: 50, label: 'S3', zone: 'sales' },
-  { id: 'd4', name: 'Sales 04', type: 'desk', capacity: 1, status: 'pending', x: 260, y: 290, w: 50, h: 50, label: 'S4', zone: 'sales' },
-  
-  { id: 'd5', name: 'Sales 05', type: 'desk', capacity: 1, status: 'available', x: 50, y: 360, w: 50, h: 50, label: 'S5', zone: 'sales' },
-  { id: 'd6', name: 'Sales 06', type: 'desk', capacity: 1, status: 'occupied', x: 120, y: 360, w: 50, h: 50, label: 'S6', zone: 'sales' },
-  { id: 'd7', name: 'Sales 07', type: 'desk', capacity: 1, status: 'available', x: 190, y: 360, w: 50, h: 50, label: 'S7', zone: 'sales' },
-  { id: 'd8', name: 'Sales 08', type: 'desk', capacity: 1, status: 'occupied', x: 260, y: 360, w: 50, h: 50, label: 'S8', zone: 'sales' },
-  
-  { id: 'sl', name: 'Sales Lounge', type: 'open-area', capacity: 15, status: 'available', x: 50, y: 430, w: 260, h: 150, zone: 'sales' },
-  
-  // Standing Desks zone - hexagonal arrangement
-  { id: 'sd1', name: 'Standing Desk 01', type: 'desk', capacity: 1, status: 'available', x: 360, y: 290, w: 48, h: 48, label: 'SD1', zone: 'engineering' },
-  { id: 'sd2', name: 'Standing Desk 02', type: 'desk', capacity: 1, status: 'occupied', x: 420, y: 290, w: 48, h: 48, label: 'SD2', zone: 'engineering' },
-  { id: 'sd3', name: 'Standing Desk 03', type: 'desk', capacity: 1, status: 'available', x: 480, y: 290, w: 48, h: 48, label: 'SD3', zone: 'engineering' },
-  
-  { id: 'sd4', name: 'Standing Desk 04', type: 'desk', capacity: 1, status: 'pending', x: 540, y: 290, w: 48, h: 48, label: 'SD4', zone: 'engineering' },
-  
-  { id: 'sd5', name: 'Standing Desk 05', type: 'desk', capacity: 1, status: 'occupied', x: 360, y: 380, w: 48, h: 48, label: 'SD5', zone: 'engineering' },
-  { id: 'sd6', name: 'Standing Desk 06', type: 'desk', capacity: 1, status: 'available', x: 420, y: 380, w: 48, h: 48, label: 'SD6', zone: 'engineering' },
-  { id: 'sd7', name: 'Standing Desk 07', type: 'desk', capacity: 1, status: 'available', x: 480, y: 380, w: 48, h: 48, label: 'SD7', zone: 'engineering' },
-  
-  { id: 'sd8', name: 'Standing Desk 08', type: 'desk', capacity: 1, status: 'occupied', x: 540, y: 380, w: 48, h: 48, label: 'SD8', zone: 'engineering' },
-  
-  // Engineering area within Standing Desks zone
-  { id: 'eng', name: 'Engineering', type: 'open-area', capacity: 8, status: 'available', x: 360, y: 460, w: 240, h: 120, zone: 'engineering' },
-  
-  // Marketing zone - desks
-  { id: 'mk1', name: 'Marketing 01', type: 'desk', capacity: 1, status: 'available', x: 670, y: 290, w: 50, h: 50, label: 'M1', zone: 'marketing' },
-  { id: 'mk2', name: 'Marketing 02', type: 'desk', capacity: 1, status: 'occupied', x: 735, y: 290, w: 50, h: 50, label: 'M2', zone: 'marketing' },
-  { id: 'mk3', name: 'Marketing 03', type: 'desk', capacity: 1, status: 'available', x: 800, y: 290, w: 50, h: 50, label: 'M3', zone: 'marketing' },
-  { id: 'mk4', name: 'Marketing 04', type: 'desk', capacity: 1, status: 'pending', x: 865, y: 290, w: 50, h: 50, label: 'M4', zone: 'marketing' },
-  
-  { id: 'mk5', name: 'Marketing 05', type: 'desk', capacity: 1, status: 'available', x: 670, y: 360, w: 50, h: 50, label: 'M5', zone: 'marketing' },
-  { id: 'mk6', name: 'Marketing 06', type: 'desk', capacity: 1, status: 'occupied', x: 735, y: 360, w: 50, h: 50, label: 'M6', zone: 'marketing' },
-  { id: 'mk7', name: 'Marketing 07', type: 'desk', capacity: 1, status: 'available', x: 800, y: 360, w: 50, h: 50, label: 'M7', zone: 'marketing' },
-  { id: 'mk8', name: 'Marketing 08', type: 'desk', capacity: 1, status: 'occupied', x: 865, y: 360, w: 50, h: 50, label: 'M8', zone: 'marketing' },
-  
-  { id: 'ml', name: 'Marketing Lounge', type: 'open-area', capacity: 12, status: 'available', x: 670, y: 430, w: 250, h: 150, zone: 'marketing' },
+  { id: 'r1', name: 'Board Room', type: 'room', capacity: 12, status: 'available', x: 42, y: 50, w: 286, h: 156, zone: 'leadership' },
+
+  // Entry & meetings
+  { id: 'r4', name: 'Reception', type: 'room', capacity: 4, status: 'available', x: 392, y: 86, w: 126, h: 84, zone: 'neutral' },
+  { id: 'r2', name: 'Meeting 01', type: 'room', capacity: 8, status: 'occupied', x: 540, y: 52, w: 160, h: 114, zone: 'neutral' },
+  { id: 'r3', name: 'Meeting 02', type: 'room', capacity: 6, status: 'pending', x: 716, y: 52, w: 146, h: 114, zone: 'neutral' },
+  { id: 'r5', name: 'Huddle Pod', type: 'room', capacity: 4, status: 'available', x: 876, y: 52, w: 70, h: 114, zone: 'neutral' },
+
+  // Hot Desk cluster around 2 physical desks
+  { id: 'tbl1a', name: 'Team Table HD-A', type: 'open-area', capacity: 4, status: 'available', x: 70, y: 324, w: 88, h: 52, zone: 'sales' },
+  { id: 'tbl1b', name: 'Team Table HD-B', type: 'open-area', capacity: 4, status: 'available', x: 182, y: 324, w: 88, h: 52, zone: 'sales' },
+  { id: 'd1', name: 'Desk HD-01', type: 'desk', capacity: 1, status: 'available', x: 66, y: 288, w: 45, h: 45, label: 'HD1', zone: 'sales' },
+  { id: 'd2', name: 'Desk HD-02', type: 'desk', capacity: 1, status: 'occupied', x: 122, y: 288, w: 45, h: 45, label: 'HD2', zone: 'sales' },
+  { id: 'd3', name: 'Desk HD-03', type: 'desk', capacity: 1, status: 'available', x: 66, y: 384, w: 45, h: 45, label: 'HD3', zone: 'sales' },
+  { id: 'd4', name: 'Desk HD-04', type: 'desk', capacity: 1, status: 'pending', x: 122, y: 384, w: 45, h: 45, label: 'HD4', zone: 'sales' },
+  { id: 'd5', name: 'Desk HD-05', type: 'desk', capacity: 1, status: 'available', x: 178, y: 288, w: 45, h: 45, label: 'HD5', zone: 'sales' },
+  { id: 'd6', name: 'Desk HD-06', type: 'desk', capacity: 1, status: 'occupied', x: 234, y: 288, w: 45, h: 45, label: 'HD6', zone: 'sales' },
+  { id: 'd7', name: 'Desk HD-07', type: 'desk', capacity: 1, status: 'available', x: 178, y: 384, w: 45, h: 45, label: 'HD7', zone: 'sales' },
+  { id: 'd8', name: 'Desk HD-08', type: 'desk', capacity: 1, status: 'occupied', x: 234, y: 384, w: 45, h: 45, label: 'HD8', zone: 'sales' },
+  { id: 'sl', name: 'Hot Desk Lounge', type: 'open-area', capacity: 12, status: 'available', x: 38, y: 468, w: 250, h: 96, zone: 'sales' },
+
+  // Dedicated desk cluster around 2 physical desks
+  { id: 'tbl2a', name: 'Team Table DD-A', type: 'open-area', capacity: 4, status: 'available', x: 397, y: 324, w: 88, h: 52, zone: 'engineering' },
+  { id: 'tbl2b', name: 'Team Table DD-B', type: 'open-area', capacity: 4, status: 'available', x: 509, y: 324, w: 88, h: 52, zone: 'engineering' },
+  { id: 'sd1', name: 'Desk DD-01', type: 'desk', capacity: 1, status: 'available', x: 393, y: 288, w: 45, h: 45, label: 'DD1', zone: 'engineering' },
+  { id: 'sd2', name: 'Desk DD-02', type: 'desk', capacity: 1, status: 'occupied', x: 449, y: 288, w: 45, h: 45, label: 'DD2', zone: 'engineering' },
+  { id: 'sd3', name: 'Desk DD-03', type: 'desk', capacity: 1, status: 'available', x: 393, y: 384, w: 45, h: 45, label: 'DD3', zone: 'engineering' },
+  { id: 'sd4', name: 'Desk DD-04', type: 'desk', capacity: 1, status: 'pending', x: 449, y: 384, w: 45, h: 45, label: 'DD4', zone: 'engineering' },
+  { id: 'sd5', name: 'Desk DD-05', type: 'desk', capacity: 1, status: 'available', x: 505, y: 288, w: 45, h: 45, label: 'DD5', zone: 'engineering' },
+  { id: 'sd6', name: 'Desk DD-06', type: 'desk', capacity: 1, status: 'occupied', x: 561, y: 288, w: 45, h: 45, label: 'DD6', zone: 'engineering' },
+  { id: 'sd7', name: 'Desk DD-07', type: 'desk', capacity: 1, status: 'available', x: 505, y: 384, w: 45, h: 45, label: 'DD7', zone: 'engineering' },
+  { id: 'sd8', name: 'Desk DD-08', type: 'desk', capacity: 1, status: 'occupied', x: 561, y: 384, w: 45, h: 45, label: 'DD8', zone: 'engineering' },
+  { id: 'eng', name: 'Dedicated Desk Lounge', type: 'open-area', capacity: 10, status: 'available', x: 365, y: 468, w: 250, h: 96, zone: 'engineering' },
+
+  // Private office cluster around 2 physical desks
+  { id: 'tbl3a', name: 'Team Table PO-A', type: 'open-area', capacity: 4, status: 'available', x: 716, y: 320, w: 84, h: 52, zone: 'marketing' },
+  { id: 'tbl3b', name: 'Team Table PO-B', type: 'open-area', capacity: 4, status: 'available', x: 828, y: 320, w: 84, h: 52, zone: 'marketing' },
+  { id: 'mk1', name: 'Desk PO-01', type: 'desk', capacity: 1, status: 'available', x: 712, y: 284, w: 45, h: 45, label: 'PO1', zone: 'marketing' },
+  { id: 'mk2', name: 'Desk PO-02', type: 'desk', capacity: 1, status: 'occupied', x: 768, y: 284, w: 45, h: 45, label: 'PO2', zone: 'marketing' },
+  { id: 'mk3', name: 'Desk PO-03', type: 'desk', capacity: 1, status: 'available', x: 712, y: 380, w: 45, h: 45, label: 'PO3', zone: 'marketing' },
+  { id: 'mk4', name: 'Desk PO-04', type: 'desk', capacity: 1, status: 'pending', x: 768, y: 380, w: 45, h: 45, label: 'PO4', zone: 'marketing' },
+  { id: 'mk5', name: 'Desk PO-05', type: 'desk', capacity: 1, status: 'available', x: 824, y: 284, w: 45, h: 45, label: 'PO5', zone: 'marketing' },
+  { id: 'mk6', name: 'Desk PO-06', type: 'desk', capacity: 1, status: 'occupied', x: 880, y: 284, w: 45, h: 45, label: 'PO6', zone: 'marketing' },
+  { id: 'mk7', name: 'Desk PO-07', type: 'desk', capacity: 1, status: 'available', x: 824, y: 380, w: 45, h: 45, label: 'PO7', zone: 'marketing' },
+  { id: 'mk8', name: 'Desk PO-08', type: 'desk', capacity: 1, status: 'occupied', x: 880, y: 380, w: 45, h: 45, label: 'PO8', zone: 'marketing' },
+  { id: 'ml', name: 'Private Office Lounge', type: 'open-area', capacity: 8, status: 'available', x: 692, y: 458, w: 250, h: 106, zone: 'marketing' },
 ];
 
 export const floorPlanLevel2Zones: FloorPlanZone[] = [

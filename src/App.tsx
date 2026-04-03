@@ -1,6 +1,20 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FiBell, FiMenu, FiMoon, FiSearch, FiSun } from "react-icons/fi";
+import {
+  FiBell,
+  FiCommand,
+  FiGrid,
+  FiList,
+  FiMenu,
+  FiMoon,
+  FiRepeat,
+  FiSearch,
+  FiSettings,
+  FiStar,
+  FiSun,
+  FiUser,
+  FiUsers,
+} from "react-icons/fi";
 import CustomerApp from "./screens/CustomerApp";
 import StaffDashboard from "./screens/StaffDashboard";
 import AdminPortal from "./screens/AdminPortal";
@@ -12,6 +26,12 @@ const ROLES: Array<{ id: Role; label: string; description: string }> = [
   { id: "staff", label: "Staff", description: "Front desk operations" },
   { id: "admin", label: "Admin", description: "Portal, RBAC and analytics" },
 ];
+
+const ROLE_ICONS: Record<Role, React.ComponentType<{ className?: string }>> = {
+  customer: FiGrid,
+  staff: FiUsers,
+  admin: FiList,
+};
 
 const App: React.FC = () => {
   const [role, setRole] = useState<Role>("customer");
@@ -34,82 +54,115 @@ const App: React.FC = () => {
   }, [role]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-main)] transition-colors duration-200">
       <div className="mx-auto flex min-h-screen max-w-[1920px]">
-        <aside className="hidden w-[290px] flex-col border-r border-slate-200 bg-white/90 px-4 py-5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:flex">
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-11 w-11 rounded-2xl bg-gradient-to-br from-primary-500 to-indigo-700 shadow-lg shadow-primary-900/20" />
-            <div>
-              <p className="text-lg font-bold tracking-tight">WorkHub OS</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Coworking space management
-              </p>
-            </div>
-          </div>
+        <aside className="sticky top-0 hidden h-screen w-[76px] shrink-0 self-start border-r border-[#0A4CB5] bg-[#0E5FD8] lg:flex">
+          <div className="flex h-full w-full flex-col items-center py-3">
+            <button
+              className="grid h-11 w-11 place-items-center rounded-xl border border-white/30 text-white shadow-sm"
+              title="WorkHub"
+              aria-label="WorkHub"
+            >
+              <FiCommand className="h-6 w-6" />
+            </button>
 
-          <div className="mt-6 space-y-2 rounded-2xl border border-slate-200 p-2 dark:border-slate-800">
-            {ROLES.map((item) => {
-              const selected = item.id === role;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setRole(item.id)}
-                  className={`w-full rounded-xl px-4 py-3 text-left transition ${selected ? "bg-primary-600 text-white shadow-lg shadow-primary-900/20" : "hover:bg-slate-100 dark:hover:bg-slate-800"}`}
-                >
-                  <div className="text-sm font-semibold">{item.label}</div>
-                  <div
-                    className={`text-xs ${selected ? "text-white/80" : "text-slate-500 dark:text-slate-400"}`}
+            <div className="mt-5 flex flex-col items-center gap-2">
+              {ROLES.map((item) => {
+                const Icon = ROLE_ICONS[item.id];
+                const selected = item.id === role;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setRole(item.id)}
+                    title={item.label}
+                    aria-label={item.label}
+                    className={`grid h-10 w-10 place-items-center rounded-xl transition ${selected ? "bg-white/20 text-white ring-1 ring-white/35" : "text-white/80 hover:bg-white/15 hover:text-white"}`}
                   >
-                    {item.description}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                    <Icon className="h-5 w-5" />
+                  </button>
+                );
+              })}
+            </div>
 
-          <div className="mt-auto space-y-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
-            <div className="flex items-center justify-between text-sm">
-              <span>Dark mode</span>
+            <div className="mt-4 h-px w-8 bg-white/25" />
+
+            <div className="mt-4 flex flex-col items-center gap-2">
               <button
-                onClick={() => setDarkMode((value) => !value)}
-                className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+                title="Workspace"
+                aria-label="Workspace"
               >
-                {darkMode ? (
-                  <FiSun className="h-4 w-4" />
-                ) : (
-                  <FiMoon className="h-4 w-4" />
-                )}
+                <FiList className="h-5 w-5" />
               </button>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-              Designed for fast booking, clear ownership and role-based
-              workflows.
+
+            <div className="mt-auto flex flex-col items-center gap-2 pb-2">
+              <button
+                onClick={() => setDarkMode((value) => !value)}
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+                title={darkMode ? "Light mode" : "Dark mode"}
+                aria-label={darkMode ? "Light mode" : "Dark mode"}
+              >
+                {darkMode ? (
+                  <FiSun className="h-5 w-5" />
+                ) : (
+                  <FiMoon className="h-5 w-5" />
+                )}
+              </button>
+              <button
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+                title="Settings"
+                aria-label="Settings"
+              >
+                <FiSettings className="h-5 w-5" />
+              </button>
+              <button
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+                title="Favorites"
+                aria-label="Favorites"
+              >
+                <FiStar className="h-5 w-5" />
+              </button>
+              <button
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+                title="Profile"
+                aria-label="Profile"
+              >
+                <FiUser className="h-5 w-5" />
+              </button>
+              <button
+                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
+                title="Switch"
+                aria-label="Switch"
+              >
+                <FiRepeat className="h-5 w-5" />
+              </button>
             </div>
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+          <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--overlay-bg)] backdrop-blur">
             <div className="flex h-16 items-center gap-3 px-4 md:px-6 lg:px-8">
               <button
                 onClick={() => setMobileOpen((value) => !value)}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200 lg:hidden"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] lg:hidden"
               >
                 <FiMenu className="h-5 w-5" />
               </button>
 
-              <div className="hidden min-w-[260px] flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 md:flex">
+              <div className="hidden min-w-[260px] flex-1 items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-hover)] px-3 py-2 text-[var(--text-secondary)] md:flex">
                 <FiSearch className="h-4 w-4" />
                 <span className="text-sm">
                   Search bookings, members, rooms, tickets...
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 dark:border-slate-800">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="flex items-center gap-2 rounded-full border border-[var(--border-subtle)] px-3 py-1.5">
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
                   Role
                 </span>
-                <span className="rounded-full bg-primary-600 px-2.5 py-1 text-xs font-semibold text-white">
+                <span className="rounded-full bg-[var(--brand-primary)] px-2.5 py-1 text-xs font-semibold text-white">
                   {roleTitle.label}
                 </span>
               </div>
@@ -117,7 +170,7 @@ const App: React.FC = () => {
               <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={() => setDarkMode((value) => !value)}
-                  className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200 lg:hidden"
+                  className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] lg:hidden"
                 >
                   {darkMode ? (
                     <FiSun className="h-5 w-5" />
@@ -125,10 +178,10 @@ const App: React.FC = () => {
                     <FiMoon className="h-5 w-5" />
                   )}
                 </button>
-                <button className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-200">
+                <button className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)]">
                   <FiBell className="h-5 w-5" />
                 </button>
-                <button className="flex items-center gap-2 rounded-xl border border-slate-200 px-2 py-1.5 dark:border-slate-800">
+                <button className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] px-2 py-1.5">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-indigo-700 text-xs font-bold text-white">
                     A
                   </span>
@@ -146,7 +199,7 @@ const App: React.FC = () => {
                   <button
                     key={item.id}
                     onClick={() => setRole(item.id)}
-                    className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${selected ? "bg-primary-600 text-white" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"}`}
+                    className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${selected ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-hover)] text-[var(--text-secondary)]"}`}
                   >
                     {item.label}
                   </button>
@@ -173,12 +226,12 @@ const App: React.FC = () => {
 
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden">
-          <div className="absolute left-0 top-0 h-full w-[290px] border-r border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="absolute left-0 top-0 h-full w-[290px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
             <div className="flex items-center justify-between">
               <p className="font-bold">WorkHub OS</p>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg border border-slate-200 px-3 py-1 text-sm dark:border-slate-800"
+                className="rounded-lg border border-[var(--border-subtle)] px-3 py-1 text-sm"
               >
                 Close
               </button>
@@ -191,7 +244,7 @@ const App: React.FC = () => {
                     setRole(item.id);
                     setMobileOpen(false);
                   }}
-                  className={`w-full rounded-xl px-4 py-3 text-left ${role === item.id ? "bg-primary-600 text-white" : "bg-slate-100 dark:bg-slate-800"}`}
+                  className={`w-full rounded-xl px-4 py-3 text-left ${role === item.id ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-hover)] text-[var(--text-main)]"}`}
                 >
                   <div className="font-semibold">{item.label}</div>
                   <div className="text-xs opacity-80">{item.description}</div>

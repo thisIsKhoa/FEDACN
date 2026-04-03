@@ -18,19 +18,19 @@ const statusColors: Record<
   { fill: string; stroke: string; badge: string }
 > = {
   available: {
-    fill: "rgba(34, 197, 94, 0.24)",
-    stroke: "#22C55E",
-    badge: "#22C55E",
+    fill: "var(--state-success-bg)",
+    stroke: "var(--state-success-solid)",
+    badge: "var(--state-success-solid)",
   },
   occupied: {
-    fill: "rgba(156, 163, 175, 0.26)",
-    stroke: "#9CA3AF",
-    badge: "#9CA3AF",
+    fill: "var(--state-neutral-bg)",
+    stroke: "var(--state-neutral-solid)",
+    badge: "var(--state-neutral-solid)",
   },
   pending: {
-    fill: "rgba(129, 140, 248, 0.26)",
-    stroke: "#818CF8",
-    badge: "#818CF8",
+    fill: "var(--state-warning-bg)",
+    stroke: "var(--state-warning-solid)",
+    badge: "var(--state-warning-solid)",
   },
 };
 
@@ -47,16 +47,22 @@ const DeskItem: React.FC<DeskItemProps> = ({
   const color = statusColors[item.status];
   const marker = String(item.label ?? item.id)
     .replace(/[^0-9A-Za-z]/g, "")
-    .slice(-2);
+    .toUpperCase()
+    .slice(0, 3);
   const interactive = item.status !== "occupied";
 
   return (
     <g
+      data-no-pan="true"
       onPointerEnter={(event) => onPointerEnter(item, event)}
       onPointerLeave={onPointerLeave}
-      onClick={() => onClick(item)}
-      style={{ cursor: interactive ? "pointer" : "not-allowed" }}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick(item);
+      }}
+      style={{ cursor: "pointer" }}
     >
+      <circle cx={cx} cy={cy} r={item.w / 2 + 10} fill="transparent" />
       <circle
         cx={cx}
         cy={cy}
@@ -67,51 +73,34 @@ const DeskItem: React.FC<DeskItemProps> = ({
         opacity={hovered ? 1 : 0.96}
         style={{
           filter: hovered
-            ? "drop-shadow(0 4px 8px rgba(99, 102, 241, 0.2))"
+            ? "drop-shadow(0 4px 8px color-mix(in oklab, var(--brand-primary) 28%, transparent))"
             : "none",
         }}
       />
-      <circle cx={cx} cy={cy} r={item.w / 3.1} fill="rgba(255,255,255,0.25)" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={item.w / 3.1}
+        fill="color-mix(in oklab, var(--bg-surface) 55%, transparent)"
+      />
       <text
         x={cx}
-        y={cy + 4}
+        y={cy + 3.5}
         textAnchor="middle"
-        className="select-none fill-white text-[10px] font-bold"
+        className="select-none fill-[var(--text-main)] text-[9px] font-bold"
       >
         {marker}
       </text>
 
-      {interactive && (
-        <g
-          transform={`translate(${cx + item.w / 2 - 5}, ${cy - item.w / 2 + 5})`}
+      {interactive && hovered && (
+        <text
+          x={cx}
+          y={item.y + item.h + 16}
+          textAnchor="middle"
+          className="select-none fill-[var(--text-main)] text-[10px] font-semibold"
         >
-          <circle
-            cx={0}
-            cy={0}
-            r={hovered ? 7 : 6}
-            fill="white"
-            stroke={color.badge}
-            strokeWidth="1.5"
-          />
-          <line
-            x1={-3}
-            y1={0}
-            x2={3}
-            y2={0}
-            stroke={color.badge}
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          />
-          <line
-            x1={0}
-            y1={-3}
-            x2={0}
-            y2={3}
-            stroke={color.badge}
-            strokeWidth="1.4"
-            strokeLinecap="round"
-          />
-        </g>
+          Click to book
+        </text>
       )}
     </g>
   );

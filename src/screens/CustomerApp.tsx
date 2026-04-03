@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FiCalendar,
@@ -62,10 +62,15 @@ const CustomerApp: React.FC = () => {
     [bookingRequest, currentFloorItems],
   );
 
-  const occupancyRate = useMemo(() => {
+  const occupancyStats = useMemo(() => {
     const desks = currentFloorItems.filter((item) => item.type === "desk");
     const occupied = desks.filter((item) => item.status === "occupied").length;
-    return desks.length > 0 ? Math.round((occupied / desks.length) * 100) : 0;
+    const total = desks.length;
+    const available = desks.filter(
+      (item) => item.status === "available",
+    ).length;
+    const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+    return { total, occupied, available, rate };
   }, [currentFloorItems]);
 
   const filteredItems = useMemo(() => {
@@ -148,13 +153,13 @@ const CustomerApp: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5">
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
               Flexible Office Booking
             </p>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            <h2 className="text-lg font-semibold text-[var(--text-main)]">
               Find space quickly, then book in one tap
             </h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -167,8 +172,8 @@ const CustomerApp: React.FC = () => {
                     onClick={() => setTab(item.id)}
                     className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
                       active
-                        ? "bg-primary-600 text-white shadow-lg shadow-primary-900/20"
-                        : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                        ? "bg-[var(--brand-primary)] text-white shadow-lg"
+                        : "border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]"
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -180,7 +185,7 @@ const CustomerApp: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <label className="flex h-11 min-w-[220px] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+            <label className="flex h-11 min-w-[220px] items-center gap-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-hover)] px-3 text-sm text-[var(--text-secondary)]">
               <FiSearch className="h-4 w-4" />
               <input
                 placeholder="Search room, desk, team..."
@@ -189,12 +194,16 @@ const CustomerApp: React.FC = () => {
                 className="w-full bg-transparent outline-none"
               />
             </label>
-            <div className="rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-700">
-              <span className="text-slate-500 dark:text-slate-400">
-                Occupancy
+            <div className="rounded-xl border border-[var(--border-subtle)] px-3 py-2 text-sm">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                Live Occupancy
               </span>
-              <p className="font-bold text-slate-900 dark:text-slate-100">
-                {occupancyRate}%
+              <p className="mt-1 text-xl font-bold leading-none text-[var(--text-main)]">
+                {occupancyStats.rate}%
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Total {occupancyStats.total} · Occupied{" "}
+                {occupancyStats.occupied} · Available {occupancyStats.available}
               </p>
             </div>
           </div>
@@ -214,8 +223,8 @@ const CustomerApp: React.FC = () => {
               onClick={() => setStatusFilter(item.id)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                 statusFilter === item.id
-                  ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                  : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  ? "bg-[var(--text-main)] text-[var(--bg-surface)]"
+                  : "border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]"
               }`}
             >
               {item.label}
@@ -234,8 +243,8 @@ const CustomerApp: React.FC = () => {
               onClick={() => setTypeFilter(item.id)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                 typeFilter === item.id
-                  ? "bg-primary-600 text-white"
-                  : "border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                  ? "bg-[var(--brand-primary)] text-white"
+                  : "border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]"
               }`}
             >
               {item.label}
@@ -249,7 +258,7 @@ const CustomerApp: React.FC = () => {
                 setStatusFilter("all");
                 setTypeFilter("all");
               }}
-              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              className="rounded-full border border-[var(--border-subtle)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--bg-surface-hover)]"
             >
               Clear filters
             </button>
@@ -257,8 +266,8 @@ const CustomerApp: React.FC = () => {
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-[auto_auto_1fr]">
-          <label className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-700">
-            <FiCalendar className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+          <label className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border-subtle)] px-3 text-sm text-[var(--text-secondary)]">
+            <FiCalendar className="h-4 w-4" />
             <input
               type="date"
               value={dateValue}
@@ -267,8 +276,8 @@ const CustomerApp: React.FC = () => {
             />
           </label>
 
-          <label className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm dark:border-slate-700">
-            <FiList className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+          <label className="inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border-subtle)] px-3 text-sm text-[var(--text-secondary)]">
+            <FiList className="h-4 w-4" />
             <select
               value={level}
               onChange={(event) =>
@@ -282,11 +291,11 @@ const CustomerApp: React.FC = () => {
                 </option>
               ))}
             </select>
-            <FiChevronDown className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            <FiChevronDown className="h-4 w-4" />
           </label>
 
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 dark:border-slate-700">
-            <span className="text-sm text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--border-subtle)] px-3 py-2">
+            <span className="text-sm text-[var(--text-secondary)]">
               {timeValue}:00
             </span>
             <input
@@ -295,11 +304,9 @@ const CustomerApp: React.FC = () => {
               max={22}
               value={timeValue}
               onChange={(event) => setTimeValue(Number(event.target.value))}
-              className="h-2 w-full accent-primary-600"
+              className="h-2 w-full accent-[var(--brand-primary)]"
             />
-            <span className="text-sm text-slate-600 dark:text-slate-300">
-              22:00
-            </span>
+            <span className="text-sm text-[var(--text-secondary)]">22:00</span>
           </div>
         </div>
       </section>
@@ -312,16 +319,19 @@ const CustomerApp: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
+            className="mx-auto flex w-full justify-center"
           >
-            <FloorPlan
-              items={filteredItems}
-              zones={filteredZones}
-              onBook={(request: BookingRequest) => {
-                setBookingRequest(request);
-                setBookingOpen(true);
-              }}
-              emptyMessage="No matching spaces for current filters"
-            />
+            <div className="w-full max-w-[1500px]">
+              <FloorPlan
+                items={filteredItems}
+                zones={filteredZones}
+                onBook={(request: BookingRequest) => {
+                  setBookingRequest(request);
+                  setBookingOpen(true);
+                }}
+                emptyMessage="No matching spaces for current filters"
+              />
+            </div>
           </motion.div>
         </AnimatePresence>
       ) : (

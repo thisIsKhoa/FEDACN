@@ -1,18 +1,23 @@
 import React, { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { FiLoader, FiMapPin, FiMail, FiLock, FiArrowLeft } from "react-icons/fi";
+import { FiLoader, FiMapPin, FiMail, FiLock, FiArrowLeft, FiUser, FiShield } from "react-icons/fi";
 
 const LoginPage: React.FC = () => {
-  const { loginWithGoogle, loginWithEmail, resetPasswordForEmail, isLoading, backendStatus } = useAuth();
-  const [view, setView] = useState<"login" | "forgot">("login");
+  const { loginWithGoogle, loginWithEmail, registerWithEmail, verifyEmailCode, resetPasswordForEmail, isLoading, backendStatus } = useAuth();
+  const [view, setView] = useState<"login" | "forgot" | "register" | "verify_otp">("login");
   const [isSubmittingGoogle, setIsSubmittingGoogle] = useState(false);
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const [isSubmittingRegister, setIsSubmittingRegister] = useState(false);
   const [isSubmittingForgot, setIsSubmittingForgot] = useState(false);
+  const [isSubmittingOtp, setIsSubmittingOtp] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const backendStatusText = useMemo(() => {
     if (backendStatus === "ok") {
@@ -38,6 +43,67 @@ const LoginPage: React.FC = () => {
       }
     } finally {
       setIsSubmittingGoogle(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName || !email || !password || !confirmPassword) {
+      setErrorMessage("Vui lòng điền đầy đủ thông tin.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsSubmittingRegister(true);
+
+    try {
+      await registerWithEmail(email, password, fullName);
+      setSuccessMessage("Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác nhận.");
+      setView("verify_otp");
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Đăng ký thất bại. Email có thể đã tồn tại hoặc có lỗi xảy ra.");
+      }
+    } finally {
+      setIsSubmittingRegister(false);
+    }
+  };
+
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !otpCode) {
+      setErrorMessage("Vui lòng nhập mã xác nhận.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsSubmittingOtp(true);
+
+    try {
+      await verifyEmailCode(email, otpCode);
+      setSuccessMessage("Xác thực thành công!");
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Mã xác nhận không hợp lệ hoặc đã hết hạn.");
+      }
+    } finally {
+      setIsSubmittingOtp(false);
     }
   };
 
@@ -165,6 +231,31 @@ const LoginPage: React.FC = () => {
                 Nhập email của bạn để nhận liên kết khôi phục
               </p>
             </>
+          ) : view === "register" ? (
+            <>
+              <h2 className="text-2xl font-bold text-[var(--text-main)]">
+                Tạo tài khoản mới
+              </h2>
+              <p className="mt-2 text-sm text-[var(--text-secondary)] mb-8">
+                Đăng ký thành viên để tham gia không gian làm việc
+              </p>
+            </>
+          ) : view === "verify_otp" ? (
+            <>
+              <button 
+                onClick={() => { setView("register"); setErrorMessage(null); setSuccessMessage(null); }} 
+                className="mb-6 flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+                aria-label="Quay lại đăng ký"
+              >
+                <FiArrowLeft className="h-4 w-4" /> Quay lại
+              </button>
+              <h2 className="text-2xl font-bold text-[var(--text-main)]">
+                Xác nhận Email
+              </h2>
+              <p className="mt-2 text-sm text-[var(--text-secondary)] mb-8">
+                Nhập mã 8 số được gửi đến {email || "email của bạn"}
+              </p>
+            </>
           ) : (
             <>
               <h2 className="text-2xl font-bold text-[var(--text-main)]">
@@ -212,6 +303,146 @@ const LoginPage: React.FC = () => {
                   <FiLoader className="h-5 w-5 animate-spin" />
                 ) : null}
                 {isSubmittingForgot ? "Đang gửi..." : "Gửi liên kết khôi phục"}
+              </button>
+            </form>
+          ) : view === "register" ? (
+            <>
+              <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                    Họ và Tên
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-tertiary)]">
+                      <FiUser className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="input-field pl-10"
+                      placeholder="Nguyễn Văn A"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-tertiary)]">
+                      <FiMail className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="input-field pl-10"
+                      placeholder="admin@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                    Mật khẩu
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-tertiary)]">
+                      <FiLock className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="input-field pl-10"
+                      placeholder="••••••••"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                    Xác nhận mật khẩu
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-tertiary)]">
+                      <FiLock className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="input-field pl-10"
+                      placeholder="••••••••"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingRegister || isSubmittingGoogle || isLoading}
+                  className="btn btn-primary w-full mt-2"
+                >
+                  {isSubmittingRegister ? (
+                    <FiLoader className="h-5 w-5 animate-spin" />
+                  ) : null}
+                  {isSubmittingRegister ? "Đang xử lý..." : "Đăng ký tài khoản"}
+                </button>
+              </form>
+
+              <div className="mt-4 flex justify-center text-sm">
+                <span className="text-[var(--text-secondary)] mr-1">Đã có tài khoản?</span>
+                <button
+                  type="button"
+                  onClick={() => { setView("login"); setErrorMessage(null); setSuccessMessage(null); }}
+                  className="font-medium text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] transition-colors"
+                >
+                  Đăng nhập
+                </button>
+              </div>
+            </>
+          ) : view === "verify_otp" ? (
+            <form onSubmit={handleVerifyOtpSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-main)] mb-1">
+                  Mã xác nhận (8 chữ số)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[var(--text-tertiary)]">
+                    <FiShield className="h-5 w-5" />
+                  </div>
+                  <input
+                    type="text"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                    className="input-field pl-10 tracking-widest text-lg font-mono"
+                    placeholder="••••••••"
+                    maxLength={8}
+                    required
+                  />
+                </div>
+                <p className="mt-2 text-xs text-[var(--text-tertiary)]">
+                  Hãy kiểm tra hộp thư đến (hoặc thư rác) của bạn.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingOtp || isLoading || otpCode.length !== 8}
+                className="btn btn-primary w-full mt-2"
+              >
+                {isSubmittingOtp ? (
+                  <FiLoader className="h-5 w-5 animate-spin" />
+                ) : null}
+                {isSubmittingOtp ? "Đang xác nhận..." : "Xác nhận mã"}
               </button>
             </form>
           ) : (
@@ -276,6 +507,17 @@ const LoginPage: React.FC = () => {
                   {isSubmittingEmail ? "Đang đăng nhập..." : "Đăng nhập"}
                 </button>
               </form>
+
+              <div className="mt-4 flex justify-center text-sm">
+                <span className="text-[var(--text-secondary)] mr-1">Chưa có tài khoản?</span>
+                <button
+                  type="button"
+                  onClick={() => { setView("register"); setErrorMessage(null); setSuccessMessage(null); }}
+                  className="font-medium text-[var(--brand-primary)] hover:text-[var(--brand-primary-hover)] transition-colors"
+                >
+                  Đăng ký ngay
+                </button>
+              </div>
 
               <div className="my-6 flex items-center">
                 <div className="flex-1 border-t border-[var(--border-subtle)]"></div>

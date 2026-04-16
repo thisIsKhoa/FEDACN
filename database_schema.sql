@@ -1,318 +1,442 @@
--- Standardized relational schema (PostgreSQL)
--- Notes:
--- 1) Avoid reserved names like USER by using users table.
--- 2) Use snake_case for consistency.
--- 3) Password is stored as password_hash, never plain text.
-
+-- ==========================================
+-- 0. EXTENSIONS SETUP
+-- ==========================================
 CREATE EXTENSION
-IF NOT EXISTS pgcrypto;
+IF NOT EXISTS "uuid-ossp";
+-- Extension này cần thiết cho tính năng EXCLUDE chống overlap thời gian booking
+CREATE EXTENSION
+IF NOT EXISTS "btree_gist";
 
--- =========================
--- ENUM TYPES
--- =========================
+-- ==========================================
+-- 1. ENUMS (Kiểu dữ liệu)
+-- ==========================================
+CREATE TYPE user_status AS ENUM
+('active', 'suspended');
 CREATE TYPE user_role AS ENUM
-('CUSTOMER', 'STAFF', 'ADMIN');
-CREATE TYPE tag_category AS ENUM
-('SKILL', 'DOMAIN', 'INTEREST', 'KEYWORD');
-CREATE TYPE room_type AS ENUM
-('DESK', 'ROOM', 'MEETINGROOM');
-CREATE TYPE space_status AS ENUM
-('AVAILABLE', 'OCCUPIED', 'MAINTENANCE');
-CREATE TYPE booking_unit AS ENUM
-('HOUR', 'DAY', 'WEEK', 'MONTH');
-CREATE TYPE package_duration_type AS ENUM
-('HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY');
+('admin', 'staff', 'customer');
+CREATE TYPE membership_tier AS ENUM
+('standard', 'premium');
+CREATE TYPE branch_status AS ENUM
+('active', 'inactive');
+CREATE TYPE workspace_status AS ENUM
+('active', 'maintenance', 'inactive');
+CREATE TYPE maintenance_status AS ENUM
+('scheduled', 'active', 'done', 'canceled');
+CREATE TYPE duration_unit AS ENUM
+('hour', 'day', 'week', 'month');
 CREATE TYPE booking_status AS ENUM
-('ACTIVE', 'CANCELLED', 'COMPLETED');
-CREATE TYPE payment_status AS ENUM
-('PENDING', 'CONFIRMED', 'REFUNDED');
+('pending_payment', 'confirmed', 'checked_in', 'completed', 'canceled', 'expired');
+CREATE TYPE booking_source AS ENUM
+('web', 'mobile', 'counter', 'admin');
+CREATE TYPE payment_provider AS ENUM
+('momo', 'cash');
 CREATE TYPE payment_method AS ENUM
-('CASH', 'BANK_TRANSFER', 'CARD');
-CREATE TYPE contract_status AS ENUM
-('DRAFT', 'ACTIVE', 'EXPIRED', 'TERMINATED');
-CREATE TYPE connection_status AS ENUM
-('PENDING', 'ACCEPTED', 'DECLINED');
-CREATE TYPE suggestion_status AS ENUM
-('PENDING', 'DISMISSED', 'CONNECTED');
+('ewallet', 'qr', 'cash');
+CREATE TYPE payment_status AS ENUM
+('initiated', 'pending', 'paid', 'failed', 'expired', 'canceled', 'refunded');
+CREATE TYPE cancel_rule_type AS ENUM
+('GRACE_HOURS', 'BEFORE_START_DAYS');
+CREATE TYPE refund_status AS ENUM
+('none', 'pending', 'confirmed', 'rejected');
+CREATE TYPE tag_category AS ENUM
+('skill', 'interest', 'industry');
+CREATE TYPE service_type AS ENUM
+('drink', 'meal', 'printing', 'other');
 
--- =========================
--- CORE USER TABLES
--- =========================
+-- ==========================================
+-- 2. TABLES CREATION
+-- ==========================================
+
 CREATE TABLE users
 (
-    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
+    full_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(20),
+    avatar_url VARCHAR(2048),
+    status user_status NOT NULL DEFAULT 'active',
     role user_role NOT NULL,
-    avatar_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    branch_id UUID,
+    -- admin/customer usually null; staff must have branch_id
+    membership_tier membership_tier NOT NULL DEFAULT 'standard',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE customer_profiles
+CREATE TABLE auth_accounts
 (
-    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL,
+    provider VARCHAR(20) NOT NULL,
+    -- e.g., 'google'
+    provider_user_id VARCHAR(120) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (provider, provider_user_id)
+);
+
+CREATE TABLE profiles
+(
+    user_id UUID PRIMARY KEY,
     bio TEXT,
-    linkedin_url TEXT,
-    domain VARCHAR(255),
-    expertise TEXT,
-    loyalty_points INT NOT NULL DEFAULT 0 CHECK (loyalty_points >= 0)
+    profession VARCHAR(120),
+    company VARCHAR(120),
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(20),
+    contact_link VARCHAR(2048),
+    contact_public BOOLEAN NOT NULL DEFAULT false,
+    primary_branch_id UUID,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE staff_profiles
+CREATE TABLE branches
 (
-    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
-    employee_code VARCHAR(100) UNIQUE,
-    department VARCHAR(255)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    address TEXT NOT NULL,
+    city VARCHAR(80),
+    timezone VARCHAR(50) NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
+    status branch_status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE admin_profiles
-(
-    user_id UUID PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE
-);
-
--- =========================
--- TAGS
--- =========================
 CREATE TABLE tags
 (
-    tag_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tag_name VARCHAR(100) NOT NULL UNIQUE,
-    category tag_category NOT NULL
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(80) NOT NULL UNIQUE,
+    category tag_category NOT NULL DEFAULT 'skill',
+    is_active BOOLEAN NOT NULL DEFAULT true
 );
 
-CREATE TABLE user_tags
+CREATE TABLE profile_skills
 (
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    tag_id UUID NOT NULL REFERENCES tags(tag_id) ON DELETE CASCADE,
-    added_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, tag_id)
+    profile_user_id UUID NOT NULL,
+    tag_id UUID NOT NULL,
+    level SMALLINT,
+    PRIMARY KEY (profile_user_id, tag_id)
 );
 
-CREATE INDEX idx_user_tags_tag_id ON user_tags(tag_id);
+CREATE TABLE profile_interests
+(
+    profile_user_id UUID NOT NULL,
+    tag_id UUID NOT NULL,
+    priority SMALLINT,
+    PRIMARY KEY (profile_user_id, tag_id)
+);
 
--- =========================
--- SPACES AND FLOORS
--- =========================
+CREATE TABLE profile_match_scores
+(
+    profile_user_id UUID NOT NULL,
+    matched_user_id UUID NOT NULL,
+    score NUMERIC(6,4) NOT NULL,
+    reasons_json JSONB,
+    computed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (profile_user_id, matched_user_id)
+);
+
 CREATE TABLE floors
 (
-    floor_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    branch_id UUID NOT NULL,
+    floor_no INT NOT NULL,
     name VARCHAR(100) NOT NULL,
-    floor_number INT NOT NULL,
-    description TEXT,
-    UNIQUE (floor_number)
+    svg_url VARCHAR(2048) NOT NULL,
+    map_version INT NOT NULL DEFAULT 1,
+    is_published BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (branch_id, floor_no)
 );
 
-CREATE TABLE spaces (
-    space_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    floor_id UUID NOT NULL REFERENCES floors(floor_id) ON DELETE RESTRICT,
-    name VARCHAR
-(150) NOT NULL,
-    room_type room_type NOT NULL,
-    space_status space_status NOT NULL DEFAULT 'AVAILABLE',
-    amenities TEXT,
-    min_booking_unit booking_unit NOT NULL,
-    capacity INT CHECK
-(capacity IS NULL OR capacity > 0),
-    space_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now
-(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now
-(),
-    UNIQUE
-(floor_id, name)
-);
-
-CREATE INDEX idx_spaces_floor_id ON spaces(floor_id);
-CREATE INDEX idx_spaces_room_type ON spaces(room_type);
-CREATE INDEX idx_spaces_space_status ON spaces(space_status);
-
--- =========================
--- SERVICE PACKAGES
--- =========================
-CREATE TABLE service_packages
+CREATE TABLE workspace_types
 (
-    package_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(150) NOT NULL,
-    duration_type package_duration_type NOT NULL,
-    base_price NUMERIC(12,2) NOT NULL CHECK (base_price >= 0),
-    description TEXT,
-    max_bookings_per_period INT CHECK (max_bookings_per_period IS NULL OR max_bookings_per_period > 0),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(30) NOT NULL UNIQUE,
+    -- desk, meeting_room, private_office
+    name VARCHAR(100) NOT NULL,
+    capacity_default INT NOT NULL DEFAULT 1
 );
 
-CREATE INDEX idx_service_packages_is_active ON service_packages(is_active);
-
--- =========================
--- BOOKINGS
--- =========================
-CREATE TABLE bookings (
-    booking_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE RESTRICT,
-    space_id UUID NOT NULL REFERENCES spaces
-(space_id) ON
-DELETE RESTRICT,
-    package_id UUID
-NOT NULL REFERENCES service_packages
-(package_id) ON
-DELETE RESTRICT,
-    start_time TIMESTAMPTZ
-NOT NULL,
-    end_time TIMESTAMPTZ NOT NULL,
-    total_price NUMERIC
-(12,2) NOT NULL CHECK
-(total_price >= 0),
-    booking_status booking_status NOT NULL DEFAULT 'ACTIVE',
-    is_walk_in BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now
-(),
-    CHECK
-(end_time > start_time)
+CREATE TABLE workspaces
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    floor_id UUID NOT NULL,
+    workspace_type_id UUID NOT NULL,
+    code VARCHAR(30) NOT NULL,
+    name VARCHAR(120) NOT NULL,
+    capacity INT NOT NULL DEFAULT 1,
+    svg_element_id VARCHAR(100) NOT NULL,
+    status workspace_status NOT NULL DEFAULT 'active',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (floor_id, code),
+    UNIQUE (floor_id, svg_element_id)
 );
 
-CREATE INDEX idx_bookings_user_id ON bookings(user_id);
-CREATE INDEX idx_bookings_space_id ON bookings(space_id);
-CREATE INDEX idx_bookings_status ON bookings(booking_status);
-CREATE INDEX idx_bookings_start_time ON bookings(start_time);
+CREATE TABLE workspace_maintenance
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ NOT NULL,
+    reason VARCHAR(255),
+    status maintenance_status NOT NULL DEFAULT 'scheduled',
+    created_by UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
--- Optional (PostgreSQL advanced): prevent overlapping ACTIVE bookings per space.
--- Requires extension btree_gist.
--- CREATE EXTENSION IF NOT EXISTS btree_gist;
--- ALTER TABLE bookings
---   ADD CONSTRAINT no_overlap_active_booking
---   EXCLUDE USING gist (
---       space_id WITH =,
---       tstzrange(start_time, end_time, '[)') WITH &&
---   ) WHERE (booking_status = 'ACTIVE');
+CREATE TABLE price_policies
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    branch_id UUID,
+    workspace_type_id UUID NOT NULL,
+    duration_unit duration_unit NOT NULL,
+    price NUMERIC(12,2) NOT NULL,
+    currency CHAR(3) NOT NULL DEFAULT 'VND',
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_by UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
--- =========================
--- PAYMENTS
--- =========================
-CREATE TABLE payments (
-    payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    booking_id UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE RESTRICT,
-    confirmed_by UUID REFERENCES users
-(user_id) ON
-DELETE
-SET NULL
-,
-    payment_status payment_status NOT NULL DEFAULT 'PENDING',
-    amount NUMERIC
-(12,2) NOT NULL CHECK
-(amount >= 0),
-    payment_method payment_method,
+CREATE TABLE bookings
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_code VARCHAR(20) NOT NULL UNIQUE,
+    user_id UUID NOT NULL,
+    workspace_id UUID NOT NULL,
+    branch_id UUID NOT NULL,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ NOT NULL,
+    unit duration_unit NOT NULL,
+    unit_count INT NOT NULL DEFAULT 1,
+    is_contract BOOLEAN NOT NULL DEFAULT false,
+    status booking_status NOT NULL,
+    subtotal_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    addon_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    payment_deadline_at TIMESTAMPTZ,
+    source booking_source NOT NULL DEFAULT 'web',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE checkin_logs
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID NOT NULL,
+    staff_user_id UUID NOT NULL,
+    checkin_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    checkout_at TIMESTAMPTZ,
+    note VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE payments
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID NOT NULL,
+    provider payment_provider NOT NULL,
+    method payment_method NOT NULL,
+    order_id VARCHAR(100) NOT NULL UNIQUE,
+    request_id VARCHAR(100),
+    amount NUMERIC(12,2) NOT NULL,
+    status payment_status NOT NULL,
+    provider_trans_id VARCHAR(120),
+    pay_url VARCHAR(2048),
+    signature_valid BOOLEAN,
+    raw_response JSONB,
     paid_at TIMESTAMPTZ,
-    transaction_id VARCHAR
-(255),
-    gateway_response TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now
-()
+    created_by_staff_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (provider, provider_trans_id)
 );
 
-CREATE INDEX idx_payments_booking_id ON payments(booking_id);
-CREATE INDEX idx_payments_status ON payments(payment_status);
+CREATE TABLE payment_events
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    payment_id UUID NOT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    idempotency_key VARCHAR(120) NOT NULL UNIQUE,
+    provider_event_id VARCHAR(120),
+    signature VARCHAR(500),
+    signature_valid BOOLEAN,
+    payload_json JSONB NOT NULL,
+    processed BOOLEAN NOT NULL DEFAULT false,
+    processed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
--- =========================
--- CANCELLATION
--- =========================
 CREATE TABLE cancellation_policies
 (
-    policy_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    policy_name VARCHAR(150) NOT NULL,
-    min_days INT NOT NULL CHECK (min_days >= 0),
-    max_days INT NOT NULL CHECK (max_days >= min_days),
-    refund_percent NUMERIC(5,2) NOT NULL CHECK (refund_percent >= 0 AND refund_percent <= 100),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    UNIQUE (min_days, max_days)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(120) NOT NULL,
+    rule_type cancel_rule_type NOT NULL,
+    min_value INT,
+    max_value INT,
+    refund_percent NUMERIC(5,2) NOT NULL,
+    priority INT NOT NULL DEFAULT 100,
+    branch_id UUID,
+    workspace_type_id UUID,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    effective_from TIMESTAMPTZ NOT NULL,
+    effective_to TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE booking_cancellations (
-    cancellation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    booking_id UUID NOT NULL UNIQUE REFERENCES bookings(booking_id) ON DELETE RESTRICT,
-    policy_id UUID NOT NULL REFERENCES cancellation_policies
-(policy_id) ON
-DELETE RESTRICT,
-    refund_amount NUMERIC(12,2)
-NOT NULL CHECK
-(refund_amount >= 0),
-    reason TEXT,
-    cancelled_at TIMESTAMPTZ NOT NULL DEFAULT now
-()
-);
-
--- =========================
--- CONTRACTS
--- =========================
-CREATE TABLE contracts (
-    contract_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    customer_id UUID NOT NULL REFERENCES customer_profiles(user_id) ON DELETE RESTRICT,
-    package_id UUID NOT NULL REFERENCES service_packages
-(package_id) ON
-DELETE RESTRICT,
-    space_id UUID
-NOT NULL REFERENCES spaces
-(space_id) ON
-DELETE RESTRICT,
-    start_date DATE
-NOT NULL,
-    end_date DATE NOT NULL,
-    total_value NUMERIC
-(14,2) NOT NULL CHECK
-(total_value >= 0),
-    status contract_status NOT NULL DEFAULT 'DRAFT',
-    signed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now
-(),
-    CHECK
-(end_date >= start_date)
-);
-
-CREATE INDEX idx_contracts_customer_id ON contracts(customer_id);
-CREATE INDEX idx_contracts_status ON contracts(status);
-
--- =========================
--- CONNECTIONS
--- =========================
-CREATE TABLE connections
+CREATE TABLE booking_cancellations
 (
-    connection_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requester_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    receiver_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    status connection_status NOT NULL DEFAULT 'PENDING',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (requester_id <> receiver_id)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID NOT NULL UNIQUE,
+    policy_id UUID,
+    refund_percent NUMERIC(5,2) NOT NULL,
+    refund_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    penalty_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    reason VARCHAR(255),
+    cancelled_by UUID NOT NULL,
+    cancelled_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    refund_status refund_status NOT NULL DEFAULT 'none',
+    refund_confirmed_by UUID,
+    refund_confirmed_at TIMESTAMPTZ,
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Prevent duplicate pair regardless of request direction.
-CREATE UNIQUE INDEX uq_connections_pair
-ON connections (
-    LEAST
-(requester_id, receiver_id),
-    GREATEST
-(requester_id, receiver_id)
-);
-
-CREATE INDEX idx_connections_status ON connections(status);
-
--- =========================
--- SUGGESTIONS
--- =========================
-CREATE TABLE suggestions
+CREATE TABLE extra_services
 (
-    suggestion_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    suggested_user_id UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    match_score NUMERIC(5,2) NOT NULL CHECK (match_score >= 0 AND match_score <= 100),
-    match_reasons JSONB,
-    status suggestion_status NOT NULL DEFAULT 'PENDING',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CHECK (user_id <> suggested_user_id),
-    UNIQUE (user_id, suggested_user_id)
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    branch_id UUID,
+    code VARCHAR(40) NOT NULL UNIQUE,
+    name VARCHAR(120) NOT NULL,
+    service_type service_type NOT NULL,
+    unit VARCHAR(20) NOT NULL,
+    price NUMERIC(12,2) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_suggestions_user_id ON suggestions(user_id);
-CREATE INDEX idx_suggestions_status ON suggestions(status);
+CREATE TABLE booking_services
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID NOT NULL,
+    extra_service_id UUID NOT NULL,
+    quantity NUMERIC(10,2) NOT NULL,
+    unit_price NUMERIC(12,2) NOT NULL,
+    line_total NUMERIC(12,2) NOT NULL,
+    note VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE audit_logs
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    actor_user_id UUID,
+    actor_role VARCHAR(20),
+    action VARCHAR(100) NOT NULL,
+    target_table VARCHAR(60) NOT NULL,
+    target_id UUID,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ==========================================
+-- 3. CHECK CONSTRAINTS & ADVANCED INDEXES
+-- ==========================================
+
+-- CHECK: user_id và matched_user_id không được trùng nhau
+ALTER TABLE profile_match_scores 
+ADD CONSTRAINT chk_match_scores_diff_users 
+CHECK (profile_user_id <> matched_user_id);
+
+-- CHECK & EXCLUDE: Chống trùng lịch Booking (no-overlap) cho cùng 1 workspace.
+ALTER TABLE bookings
+ADD CONSTRAINT no_overlap_bookings 
+EXCLUDE USING gist
+(
+    workspace_id
+WITH =,
+    tstzrange
+(start_at, end_at)
+WITH &&
+)
+WHERE
+(status IN
+('pending_payment', 'confirmed', 'checked_in'));
+
+-- UNIQUE INDEX: Chỉ cho phép một lần check-in active duy nhất cho mỗi booking
+CREATE UNIQUE INDEX idx_single_active_checkin 
+ON checkin_logs (booking_id) 
+WHERE checkout_at IS NULL;
+
+-- INDEX tối ưu tra cứu cho các trường khóa ngoại hay dùng (Performance)
+CREATE INDEX idx_users_branch_id ON users(branch_id);
+CREATE INDEX idx_auth_accounts_user_id ON auth_accounts(user_id);
+CREATE INDEX idx_bookings_user_id ON bookings(user_id);
+CREATE INDEX idx_bookings_branch_id ON bookings(branch_id);
+CREATE INDEX idx_bookings_workspace_id ON bookings(workspace_id);
+CREATE INDEX idx_payments_booking_id ON payments(booking_id);
+CREATE INDEX idx_booking_services_booking_id ON booking_services(booking_id);
+CREATE INDEX idx_audit_logs_actor_id ON audit_logs(actor_user_id);
+
+-- ==========================================
+-- 4. FOREIGN KEYS (Relationships)
+-- ==========================================
+
+ALTER TABLE users ADD CONSTRAINT fk_users_branch FOREIGN KEY (branch_id) REFERENCES branches(id);
+
+ALTER TABLE auth_accounts ADD CONSTRAINT fk_auth_user FOREIGN KEY (user_id) REFERENCES users(id);
+
+ALTER TABLE profiles ADD CONSTRAINT fk_profiles_user FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE profiles ADD CONSTRAINT fk_profiles_primary_branch FOREIGN KEY (primary_branch_id) REFERENCES branches(id);
+
+ALTER TABLE profile_skills ADD CONSTRAINT fk_skills_profile FOREIGN KEY (profile_user_id) REFERENCES profiles(user_id);
+ALTER TABLE profile_skills ADD CONSTRAINT fk_skills_tag FOREIGN KEY (tag_id) REFERENCES tags(id);
+
+ALTER TABLE profile_interests ADD CONSTRAINT fk_interests_profile FOREIGN KEY (profile_user_id) REFERENCES profiles(user_id);
+ALTER TABLE profile_interests ADD CONSTRAINT fk_interests_tag FOREIGN KEY (tag_id) REFERENCES tags(id);
+
+ALTER TABLE profile_match_scores ADD CONSTRAINT fk_match_profile FOREIGN KEY (profile_user_id) REFERENCES profiles(user_id);
+ALTER TABLE profile_match_scores ADD CONSTRAINT fk_match_matched FOREIGN KEY (matched_user_id) REFERENCES profiles(user_id);
+
+ALTER TABLE floors ADD CONSTRAINT fk_floors_branch FOREIGN KEY (branch_id) REFERENCES branches(id);
+
+ALTER TABLE workspaces ADD CONSTRAINT fk_ws_floor FOREIGN KEY (floor_id) REFERENCES floors(id);
+ALTER TABLE workspaces ADD CONSTRAINT fk_ws_type FOREIGN KEY (workspace_type_id) REFERENCES workspace_types(id);
+
+ALTER TABLE workspace_maintenance ADD CONSTRAINT fk_ws_maint_ws FOREIGN KEY (workspace_id) REFERENCES workspaces(id);
+ALTER TABLE workspace_maintenance ADD CONSTRAINT fk_ws_maint_created FOREIGN KEY (created_by) REFERENCES users(id);
+
+ALTER TABLE price_policies ADD CONSTRAINT fk_price_branch FOREIGN KEY (branch_id) REFERENCES branches(id);
+ALTER TABLE price_policies ADD CONSTRAINT fk_price_ws_type FOREIGN KEY (workspace_type_id) REFERENCES workspace_types(id);
+ALTER TABLE price_policies ADD CONSTRAINT fk_price_created FOREIGN KEY (created_by) REFERENCES users(id);
+
+ALTER TABLE bookings ADD CONSTRAINT fk_bookings_user FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE bookings ADD CONSTRAINT fk_bookings_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces(id);
+ALTER TABLE bookings ADD CONSTRAINT fk_bookings_branch FOREIGN KEY (branch_id) REFERENCES branches(id);
+
+ALTER TABLE checkin_logs ADD CONSTRAINT fk_checkin_booking FOREIGN KEY (booking_id) REFERENCES bookings(id);
+ALTER TABLE checkin_logs ADD CONSTRAINT fk_checkin_staff FOREIGN KEY (staff_user_id) REFERENCES users(id);
+
+ALTER TABLE payments ADD CONSTRAINT fk_payments_booking FOREIGN KEY (booking_id) REFERENCES bookings(id);
+ALTER TABLE payments ADD CONSTRAINT fk_payments_staff FOREIGN KEY (created_by_staff_id) REFERENCES users(id);
+
+ALTER TABLE payment_events ADD CONSTRAINT fk_pay_events_payment FOREIGN KEY (payment_id) REFERENCES payments(id);
+
+ALTER TABLE cancellation_policies ADD CONSTRAINT fk_canc_branch FOREIGN KEY (branch_id) REFERENCES branches(id);
+ALTER TABLE cancellation_policies ADD CONSTRAINT fk_canc_ws_type FOREIGN KEY (workspace_type_id) REFERENCES workspace_types(id);
+
+ALTER TABLE booking_cancellations ADD CONSTRAINT fk_bc_booking FOREIGN KEY (booking_id) REFERENCES bookings(id);
+ALTER TABLE booking_cancellations ADD CONSTRAINT fk_bc_policy FOREIGN KEY (policy_id) REFERENCES cancellation_policies(id);
+ALTER TABLE booking_cancellations ADD CONSTRAINT fk_bc_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES users(id);
+ALTER TABLE booking_cancellations ADD CONSTRAINT fk_bc_refund_by FOREIGN KEY (refund_confirmed_by) REFERENCES users(id);
+
+ALTER TABLE booking_services ADD CONSTRAINT fk_bs_booking FOREIGN KEY (booking_id) REFERENCES bookings(id);
+ALTER TABLE booking_services ADD CONSTRAINT fk_bs_extra_srv FOREIGN KEY (extra_service_id) REFERENCES extra_services(id);
+
+ALTER TABLE audit_logs ADD CONSTRAINT fk_audit_actor FOREIGN KEY (actor_user_id) REFERENCES users(id);

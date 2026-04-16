@@ -9,6 +9,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@supabase/supabase-js": "^2.57.4",
         "@dnd-kit/core": "^5.0.2",
         "@dnd-kit/sortable": "^6.0.1",
         "framer-motion": "^11.0.0",

@@ -1,261 +1,286 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { AuthProvider, useAuth, UserRole } from './context/AuthContext';
+import { ToastProvider } from './components/Toast';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
-  FiBell,
-  FiCommand,
-  FiGrid,
-  FiList,
-  FiMenu,
-  FiMoon,
-  FiRepeat,
-  FiSearch,
-  FiSettings,
-  FiStar,
-  FiSun,
-  FiUser,
-  FiUsers,
-} from "react-icons/fi";
-import CustomerApp from "./screens/CustomerApp";
-import StaffDashboard from "./screens/StaffDashboard";
-import AdminPortal from "./screens/AdminPortal";
+  FiMapPin, FiCalendar, FiCreditCard, FiUser, FiUsers, FiActivity,
+  FiCheckCircle, FiDollarSign, FiTool, FiTag, FiShield, FiRefreshCw,
+  FiCoffee, FiFileText, FiBarChart2, FiSun, FiMoon, FiLogOut, FiMenu,
+  FiChevronLeft
+} from 'react-icons/fi';
 
-type Role = "customer" | "staff" | "admin";
+// ── Pages ──
+import LoginPage from './pages/LoginPage';
+import ExplorePage from './pages/customer/ExplorePage';
+import MyBookingsPage from './pages/customer/MyBookingsPage';
+import PaymentHistoryPage from './pages/customer/PaymentHistoryPage';
+import ProfilePage from './pages/customer/ProfilePage';
+import PartnerMatchPage from './pages/customer/PartnerMatchPage';
+import OperationsDashboardPage from './pages/staff/OperationsDashboardPage';
+import CheckInPage from './pages/staff/CheckInPage';
+import PaymentConfirmPage from './pages/staff/PaymentConfirmPage';
+import MaintenancePage from './pages/staff/MaintenancePage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import BranchManagementPage from './pages/admin/BranchManagementPage';
+import PricingPage from './pages/admin/PricingPage';
+import UserManagementPage from './pages/admin/UserManagementPage';
+import CancellationPoliciesPage from './pages/admin/CancellationPoliciesPage';
+import RefundApprovalPage from './pages/admin/RefundApprovalPage';
+import ExtraServicesPage from './pages/admin/ExtraServicesPage';
+import AuditLogPage from './pages/admin/AuditLogPage';
+import ReportsPage from './pages/admin/ReportsPage';
 
-const ROLES: Array<{ id: Role; label: string; description: string }> = [
-  { id: "customer", label: "Customer", description: "End-user booking app" },
-  { id: "staff", label: "Staff", description: "Front desk operations" },
-  { id: "admin", label: "Admin", description: "Portal, RBAC and analytics" },
+// ── Navigation config ──
+interface NavItem { to: string; label: string; icon: React.ReactNode; }
+
+const customerNav: NavItem[] = [
+  { to: '/customer/explore', label: 'Khám phá', icon: <FiMapPin className="h-4 w-4" /> },
+  { to: '/customer/bookings', label: 'Đặt chỗ', icon: <FiCalendar className="h-4 w-4" /> },
+  { to: '/customer/payments', label: 'Thanh toán', icon: <FiCreditCard className="h-4 w-4" /> },
+  { to: '/customer/profile', label: 'Hồ sơ', icon: <FiUser className="h-4 w-4" /> },
+  { to: '/customer/partners', label: 'Đối tác', icon: <FiUsers className="h-4 w-4" /> },
 ];
 
-const ROLE_ICONS: Record<Role, React.ComponentType<{ className?: string }>> = {
-  customer: FiGrid,
-  staff: FiUsers,
-  admin: FiList,
-};
+const staffNav: NavItem[] = [
+  { to: '/staff/dashboard', label: 'Dashboard', icon: <FiActivity className="h-4 w-4" /> },
+  { to: '/staff/checkin', label: 'Check-in', icon: <FiCheckCircle className="h-4 w-4" /> },
+  { to: '/staff/payments', label: 'Thanh toán', icon: <FiDollarSign className="h-4 w-4" /> },
+  { to: '/staff/maintenance', label: 'Bảo trì', icon: <FiTool className="h-4 w-4" /> },
+];
 
-const App: React.FC = () => {
-  const [role, setRole] = useState<Role>("customer");
-  const [darkMode, setDarkMode] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+const adminNav: NavItem[] = [
+  { to: '/admin/dashboard', label: 'Tổng quan', icon: <FiActivity className="h-4 w-4" /> },
+  { to: '/admin/branches', label: 'Chi nhánh', icon: <FiMapPin className="h-4 w-4" /> },
+  { to: '/admin/pricing', label: 'Bảng giá', icon: <FiTag className="h-4 w-4" /> },
+  { to: '/admin/users', label: 'Người dùng', icon: <FiUsers className="h-4 w-4" /> },
+  { to: '/admin/cancellation', label: 'Chính sách hủy', icon: <FiShield className="h-4 w-4" /> },
+  { to: '/admin/refunds', label: 'Hoàn tiền', icon: <FiRefreshCw className="h-4 w-4" /> },
+  { to: '/admin/services', label: 'Dịch vụ thêm', icon: <FiCoffee className="h-4 w-4" /> },
+  { to: '/admin/audit', label: 'Nhật ký', icon: <FiFileText className="h-4 w-4" /> },
+  { to: '/admin/reports', label: 'Báo cáo', icon: <FiBarChart2 className="h-4 w-4" /> },
+];
 
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
-
-  const roleTitle = useMemo(
-    () => ROLES.find((item) => item.id === role) ?? ROLES[0],
-    [role],
-  );
-
-  const content = useMemo(() => {
-    if (role === "customer") return <CustomerApp />;
-    if (role === "staff") return <StaffDashboard />;
-    return <AdminPortal />;
-  }, [role]);
+// ── Mobile Bottom Nav ──
+const MobileBottomNav: React.FC<{ items: NavItem[] }> = ({ items }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Show max 5 items on bottom nav
+  const visibleItems = items.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-main)] transition-colors duration-200">
-      <div className="mx-auto flex min-h-screen max-w-[1920px]">
-        <aside className="sticky top-0 hidden h-screen w-[76px] shrink-0 self-start border-r border-[#0A4CB5] bg-[#0E5FD8] lg:flex">
-          <div className="flex h-full w-full flex-col items-center py-3">
-            <button
-              className="grid h-11 w-11 place-items-center rounded-xl border border-white/30 text-white shadow-sm"
-              title="WorkHub"
-              aria-label="WorkHub"
-            >
-              <FiCommand className="h-6 w-6" />
-            </button>
+    <nav className="mobile-bottom-nav" aria-label="Điều hướng di động">
+      {visibleItems.map(item => (
+        <button
+          key={item.to}
+          onClick={() => navigate(item.to)}
+          className={`nav-item ${location.pathname === item.to ? 'active' : ''}`}
+          aria-label={item.label}
+          aria-current={location.pathname === item.to ? 'page' : undefined}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </nav>
+  );
+};
 
-            <div className="mt-5 flex flex-col items-center gap-2">
-              {ROLES.map((item) => {
-                const Icon = ROLE_ICONS[item.id];
-                const selected = item.id === role;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setRole(item.id)}
-                    title={item.label}
-                    aria-label={item.label}
-                    className={`grid h-10 w-10 place-items-center rounded-xl transition ${selected ? "bg-white/20 text-white ring-1 ring-white/35" : "text-white/80 hover:bg-white/15 hover:text-white"}`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </button>
-                );
-              })}
-            </div>
+// ── Layout Shell ──
+const AppShell: React.FC = () => {
+  const { user, logout, switchRole, isAuthenticated } = useAuth();
+  const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
 
-            <div className="mt-4 h-px w-8 bg-white/25" />
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    localStorage.setItem('theme', dark ? 'dark' : 'light');
+  }, [dark]);
 
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <button
-                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
-                title="Workspace"
-                aria-label="Workspace"
-              >
-                <FiList className="h-5 w-5" />
-              </button>
-            </div>
+  useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
-            <div className="mt-auto flex flex-col items-center gap-2 pb-2">
-              <button
-                onClick={() => setDarkMode((value) => !value)}
-                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
-                title={darkMode ? "Light mode" : "Dark mode"}
-                aria-label={darkMode ? "Light mode" : "Dark mode"}
-              >
-                {darkMode ? (
-                  <FiSun className="h-5 w-5" />
-                ) : (
-                  <FiMoon className="h-5 w-5" />
-                )}
-              </button>
-              <button
-                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
-                title="Settings"
-                aria-label="Settings"
-              >
-                <FiSettings className="h-5 w-5" />
-              </button>
-              <button
-                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
-                title="Favorites"
-                aria-label="Favorites"
-              >
-                <FiStar className="h-5 w-5" />
-              </button>
-              <button
-                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
-                title="Profile"
-                aria-label="Profile"
-              >
-                <FiUser className="h-5 w-5" />
-              </button>
-              <button
-                className="grid h-10 w-10 place-items-center rounded-xl text-white/80 transition hover:bg-white/15 hover:text-white"
-                title="Switch"
-                aria-label="Switch"
-              >
-                <FiRepeat className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </aside>
+  if (!isAuthenticated || !user) return <LoginPage />;
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-[var(--border-subtle)] bg-[var(--overlay-bg)] backdrop-blur">
-            <div className="flex h-16 items-center gap-3 px-4 md:px-6 lg:px-8">
-              <button
-                onClick={() => setMobileOpen((value) => !value)}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] lg:hidden"
-              >
-                <FiMenu className="h-5 w-5" />
-              </button>
+  const navItems = user.role === 'admin' ? adminNav : user.role === 'staff' ? staffNav : customerNav;
+  const roleLabel: Record<UserRole, string> = { customer: 'Khách hàng', staff: 'Nhân viên', admin: 'Quản trị viên' };
+  const defaultRoute = user.role === 'admin' ? '/admin/dashboard' : user.role === 'staff' ? '/staff/dashboard' : '/customer/explore';
 
-              <div className="hidden min-w-[260px] flex-1 items-center gap-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface-hover)] px-3 py-2 text-[var(--text-secondary)] md:flex">
-                <FiSearch className="h-4 w-4" />
-                <span className="text-sm">
-                  Search bookings, members, rooms, tickets...
-                </span>
-              </div>
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* Skip-to-content link (a11y) */}
+      <a href="#main-content" className="skip-link">
+        Bỏ qua điều hướng
+      </a>
 
-              <div className="flex items-center gap-2 rounded-full border border-[var(--border-subtle)] px-3 py-1.5">
-                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-                  Role
-                </span>
-                <span className="rounded-full bg-[var(--brand-primary)] px-2.5 py-1 text-xs font-semibold text-white">
-                  {roleTitle.label}
-                </span>
-              </div>
-
-              <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={() => setDarkMode((value) => !value)}
-                  className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)] lg:hidden"
-                >
-                  {darkMode ? (
-                    <FiSun className="h-5 w-5" />
-                  ) : (
-                    <FiMoon className="h-5 w-5" />
-                  )}
-                </button>
-                <button className="grid h-10 w-10 place-items-center rounded-xl border border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                  <FiBell className="h-5 w-5" />
-                </button>
-                <button className="flex items-center gap-2 rounded-xl border border-[var(--border-subtle)] px-2 py-1.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-indigo-700 text-xs font-bold text-white">
-                    A
-                  </span>
-                  <span className="hidden text-sm font-medium md:inline">
-                    Alex
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto px-4 pb-3 md:px-6 lg:hidden">
-              {ROLES.map((item) => {
-                const selected = item.id === role;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setRole(item.id)}
-                    className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition ${selected ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-hover)] text-[var(--text-secondary)]"}`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-          </header>
-
-          <main className="flex-1 px-4 py-5 md:px-6 lg:px-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={role}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.2 }}
-              >
-                {content}
-              </motion.div>
-            </AnimatePresence>
-          </main>
-        </div>
-      </div>
-
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-950/50 lg:hidden">
-          <div className="absolute left-0 top-0 h-full w-[290px] border-r border-[var(--border-subtle)] bg-[var(--bg-surface)] p-4">
-            <div className="flex items-center justify-between">
-              <p className="font-bold">WorkHub OS</p>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="rounded-lg border border-[var(--border-subtle)] px-3 py-1 text-sm"
-              >
-                Close
-              </button>
-            </div>
-            <div className="mt-4 space-y-2">
-              {ROLES.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setRole(item.id);
-                    setMobileOpen(false);
-                  }}
-                  className={`w-full rounded-xl px-4 py-3 text-left ${role === item.id ? "bg-[var(--brand-primary)] text-white" : "bg-[var(--bg-surface-hover)] text-[var(--text-main)]"}`}
-                >
-                  <div className="font-semibold">{item.label}</div>
-                  <div className="text-xs opacity-80">{item.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Sidebar overlay (mobile) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+          role="button"
+          aria-label="Đóng menu"
+          tabIndex={-1}
+        />
       )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed lg:static z-50 h-full flex flex-col bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] transition-all duration-300 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        } ${collapsed ? 'w-[68px]' : 'w-64'}`}
+        aria-label="Điều hướng chính"
+      >
+        {/* Logo */}
+        <div className={`flex items-center gap-3 px-5 h-16 border-b border-[var(--border-subtle)] shrink-0 ${collapsed ? 'justify-center px-3' : ''}`}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 shrink-0">
+            <FiMapPin className="h-4.5 w-4.5 text-white" />
+          </div>
+          {!collapsed && <span className="text-lg font-bold tracking-tight">WorkHub</span>}
+        </div>
+
+        {/* Nav links */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1" aria-label="Menu chính">
+          {navItems.map(item => (
+            <NavLink key={item.to} to={item.to}
+              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-3' : ''}`}
+              title={item.label}
+              aria-current={location.pathname === item.to ? 'page' : undefined}>
+              {item.icon}
+              {!collapsed && <span>{item.label}</span>}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Collapse button (desktop) */}
+        <div className="hidden lg:block px-3 py-2 border-t border-[var(--border-subtle)]">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="sidebar-link w-full justify-center"
+            aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
+          >
+            <FiChevronLeft className={`h-4 w-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+
+        {/* User section */}
+        <div className={`px-4 py-3 border-t border-[var(--border-subtle)] shrink-0 ${collapsed ? 'px-2' : ''}`}>
+          {!collapsed ? (
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-sm font-bold shrink-0">
+                  {user.fullName.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{user.fullName}</p>
+                  <p className="text-xs text-[var(--text-secondary)] truncate">{roleLabel[user.role]}</p>
+                </div>
+              </div>
+              {/* Role switcher (demo) */}
+              <div className="mt-3 flex gap-1" role="group" aria-label="Chuyển vai trò">
+                {(['customer', 'staff', 'admin'] as UserRole[]).map(r => (
+                  <button key={r} onClick={() => switchRole(r)}
+                    className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition-all ${user.role === r ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-main)]'}`}
+                    aria-pressed={user.role === r}
+                    aria-label={`Chuyển sang ${r === 'customer' ? 'Khách hàng' : r === 'staff' ? 'Nhân viên' : 'Quản trị viên'}`}>
+                    {r === 'customer' ? 'KH' : r === 'staff' ? 'NV' : 'QTV'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
+                {user.fullName.charAt(0)}
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="h-16 flex items-center justify-between px-6 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden btn btn-ghost btn-sm"
+            aria-label="Mở menu điều hướng"
+          >
+            <FiMenu className="h-5 w-5" />
+          </button>
+
+          <div className="hidden lg:block">
+            {user.branchName && (
+              <span className="text-sm text-[var(--text-secondary)] flex items-center gap-2">
+                <FiMapPin className="h-3.5 w-3.5" /> {user.branchName}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button onClick={() => setDark(!dark)}
+              className="btn btn-ghost btn-sm"
+              aria-label={dark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}>
+              {dark ? <FiSun className="h-4 w-4" /> : <FiMoon className="h-4 w-4" />}
+            </button>
+            <button onClick={logout} className="btn btn-ghost btn-sm" aria-label="Đăng xuất">
+              <FiLogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main id="main-content" className="flex-1 overflow-y-auto px-6 py-6 bg-[var(--bg-base)] mobile-main-content">
+          <ErrorBoundary>
+            <Routes>
+              {/* Customer */}
+              <Route path="/customer/explore" element={<ExplorePage />} />
+              <Route path="/customer/bookings" element={<MyBookingsPage />} />
+              <Route path="/customer/payments" element={<PaymentHistoryPage />} />
+              <Route path="/customer/profile" element={<ProfilePage />} />
+              <Route path="/customer/partners" element={<PartnerMatchPage />} />
+
+              {/* Staff */}
+              <Route path="/staff/dashboard" element={<OperationsDashboardPage />} />
+              <Route path="/staff/checkin" element={<CheckInPage />} />
+              <Route path="/staff/payments" element={<PaymentConfirmPage />} />
+              <Route path="/staff/maintenance" element={<MaintenancePage />} />
+
+              {/* Admin */}
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/admin/branches" element={<BranchManagementPage />} />
+              <Route path="/admin/pricing" element={<PricingPage />} />
+              <Route path="/admin/users" element={<UserManagementPage />} />
+              <Route path="/admin/cancellation" element={<CancellationPoliciesPage />} />
+              <Route path="/admin/refunds" element={<RefundApprovalPage />} />
+              <Route path="/admin/services" element={<ExtraServicesPage />} />
+              <Route path="/admin/audit" element={<AuditLogPage />} />
+              <Route path="/admin/reports" element={<ReportsPage />} />
+
+              {/* Default redirect */}
+              <Route path="*" element={<Navigate to={defaultRoute} replace />} />
+            </Routes>
+          </ErrorBoundary>
+        </main>
+
+        {/* Mobile Bottom Nav */}
+        <MobileBottomNav items={navItems} />
+      </div>
     </div>
   );
 };
+
+// ── Root App ──
+const App: React.FC = () => (
+  <AuthProvider>
+    <ToastProvider>
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
+    </ToastProvider>
+  </AuthProvider>
+);
 
 export default App;

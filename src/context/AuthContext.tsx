@@ -28,6 +28,8 @@ interface AuthContextValue {
   isLoading: boolean;
   backendStatus: "idle" | "ok" | "error";
   loginWithGoogle: () => Promise<void>;
+  registerWithEmail: (email: string, password: string, fullName: string) => Promise<void>;
+  verifyEmailCode: (email: string, code: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -223,6 +225,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
+  const registerWithEmail = useCallback(async (email: string, password: string, fullName: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+  }, []);
+
+  const verifyEmailCode = useCallback(async (email: string, code: string) => {
+    if (!isSupabaseConfigured) {
+      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
+    }
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: code,
+      type: "signup",
+    });
+
+    if (error) {
+      throw error;
+    }
+  }, []);
+
   const loginWithEmail = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) {
       throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
@@ -279,6 +317,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       isLoading,
       backendStatus,
       loginWithGoogle,
+      registerWithEmail,
+      verifyEmailCode,
       loginWithEmail,
       resetPasswordForEmail,
       logout,
@@ -289,6 +329,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       isLoading,
       backendStatus,
       loginWithGoogle,
+      registerWithEmail,
+      verifyEmailCode,
       loginWithEmail,
       resetPasswordForEmail,
       logout,

@@ -1,43 +1,32 @@
 import React from 'react';
-import { FiTool, FiCalendar, FiAlertTriangle } from 'react-icons/fi';
+import { FiCalendar } from 'react-icons/fi';
 import { workspaceMaintenances, getWorkspace } from '../../data/mockData';
 import { formatDateTime, maintenanceStatusLabel } from '../../utils/formatters';
 
 const MaintenancePage: React.FC = () => {
-  const statusColor: Record<string, string> = {
-    scheduled: 'badge-info', active: 'badge-warning', done: 'badge-success', canceled: 'badge-neutral',
-  };
+  const statusColor: Record<string, string> = { scheduled: 'badge-info', active: 'badge-warning', done: 'badge-success', canceled: 'badge-neutral' };
 
   return (
-    <div className="space-y-6 page-enter">
-      <div className="section-card">
+    <div className="space-y-6 animate-fade-in">
+      <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="section-title">Bảo trì</p>
-            <h1 className="section-heading">Lịch bảo trì workspace</h1>
+            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bảo trì</p>
+            <h1 className="text-xl font-bold font-heading mt-1">Lịch bảo trì workspace</h1>
           </div>
           <button className="btn btn-primary btn-sm"><FiCalendar className="h-4 w-4" /> Tạo lịch bảo trì</button>
         </div>
       </div>
 
-      <div className="section-card overflow-x-auto">
+      <div className="rounded-xl border border-border bg-card p-6 overflow-x-auto">
         <table className="data-table">
-          <thead>
-            <tr>
-              <th>Workspace</th>
-              <th>Bắt đầu</th>
-              <th>Kết thúc</th>
-              <th>Lý do</th>
-              <th>Trạng thái</th>
-              <th></th>
-            </tr>
-          </thead>
+          <thead><tr><th>Workspace</th><th>Bắt đầu</th><th>Kết thúc</th><th>Lý do</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody>
             {workspaceMaintenances.map(wm => {
               const ws = getWorkspace(wm.workspace_id);
               return (
                 <tr key={wm.id}>
-                  <td className="font-medium">{ws?.name} <span className="text-xs text-[var(--text-tertiary)]">({ws?.code})</span></td>
+                  <td className="font-medium">{ws?.name} <span className="text-xs text-muted-foreground">({ws?.code})</span></td>
                   <td>{formatDateTime(wm.start_at)}</td>
                   <td>{formatDateTime(wm.end_at)}</td>
                   <td>{wm.reason}</td>

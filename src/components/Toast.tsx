@@ -23,9 +23,9 @@ export const useToast = (): ToastContextValue => {
 };
 
 const ICONS: Record<ToastType, ReactNode> = {
-  success: <FiCheckCircle className="h-5 w-5 text-[var(--state-success)] shrink-0" />,
-  error: <FiAlertCircle className="h-5 w-5 text-[var(--state-danger)] shrink-0" />,
-  info: <FiInfo className="h-5 w-5 text-[var(--state-info)] shrink-0" />,
+  success: <FiCheckCircle className="h-5 w-5 text-success shrink-0" />,
+  error: <FiAlertCircle className="h-5 w-5 text-destructive shrink-0" />,
+  info: <FiInfo className="h-5 w-5 text-info shrink-0" />,
 };
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -51,7 +51,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             {ICONS[t.type]}
             <span className="flex-1">{t.message}</span>
             <button onClick={() => removeToast(t.id)}
-              className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-main)]"
+              className="shrink-0 text-muted-foreground hover:text-foreground"
               aria-label="Đóng thông báo">
               <FiX className="h-4 w-4" />
             </button>

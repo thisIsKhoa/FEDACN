@@ -15,38 +15,38 @@ const RefundApprovalPage: React.FC = () => {
   const statusLabel: Record<string, string> = { none: 'Không hoàn', pending: 'Chờ duyệt', confirmed: 'Đã duyệt', rejected: 'Từ chối' };
 
   return (
-    <div className="space-y-6 page-enter">
-      <div className="section-card">
-        <p className="section-title">Hoàn tiền</p>
-        <h1 className="section-heading">Duyệt yêu cầu hoàn tiền</h1>
-        <p className="text-sm text-[var(--text-secondary)] mt-1">Xử lý nội bộ — không thực hiện chuyển khoản qua MoMo</p>
+    <div className="space-y-6 animate-fade-in">
+      <div className="rounded-xl border border-border bg-card p-6">
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hoàn tiền</p>
+        <h1 className="text-xl font-bold font-heading mt-1">Duyệt yêu cầu hoàn tiền</h1>
+        <p className="text-sm text-muted-foreground mt-1">Xử lý nội bộ — không thực hiện chuyển khoản qua MoMo</p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {cancels.map(c => (
-          <div key={c.id} className="section-card card-interactive">
+          <div key={c.id} className="rounded-xl border border-border bg-card p-6 card-interactive">
             <div className="flex items-center justify-between">
               <span className={`badge ${statusBadge[c.refund_status]}`}>{statusLabel[c.refund_status]}</span>
-              <span className="text-xs text-[var(--text-tertiary)]">{formatDateTime(c.cancelled_at)}</span>
+              <span className="text-xs text-muted-foreground">{formatDateTime(c.cancelled_at)}</span>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[var(--bg-surface-hover)] p-3">
-                <p className="text-xs text-[var(--text-tertiary)]">Khách hàng</p>
+              <div className="rounded-xl bg-muted p-3">
+                <p className="text-xs text-muted-foreground">Khách hàng</p>
                 <p className="font-medium">{c.customer?.full_name}</p>
               </div>
-              <div className="rounded-xl bg-[var(--bg-surface-hover)] p-3">
-                <p className="text-xs text-[var(--text-tertiary)]">Workspace</p>
+              <div className="rounded-xl bg-muted p-3">
+                <p className="text-xs text-muted-foreground">Workspace</p>
                 <p className="font-medium">{c.workspace?.name}</p>
               </div>
             </div>
-            <div className="mt-3 rounded-xl bg-[var(--bg-surface-hover)] p-3">
-              <p className="text-xs text-[var(--text-tertiary)]">Lý do hủy</p>
+            <div className="mt-3 rounded-xl bg-muted p-3">
+              <p className="text-xs text-muted-foreground">Lý do hủy</p>
               <p className="text-sm mt-1">{c.reason}</p>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-3">
-              <div><p className="text-xs text-[var(--text-tertiary)]">Hoàn tiền</p><p className="font-semibold text-[var(--state-success)]">{formatVND(c.refund_amount)}</p></div>
-              <div><p className="text-xs text-[var(--text-tertiary)]">Phần trăm</p><p className="font-semibold">{c.refund_percent}%</p></div>
-              <div><p className="text-xs text-[var(--text-tertiary)]">Phí hủy</p><p className="font-semibold text-[var(--state-danger)]">{formatVND(c.penalty_amount)}</p></div>
+              <div><p className="text-xs text-muted-foreground">Hoàn tiền</p><p className="font-semibold text-success">{formatVND(c.refund_amount)}</p></div>
+              <div><p className="text-xs text-muted-foreground">Phần trăm</p><p className="font-semibold">{c.refund_percent}%</p></div>
+              <div><p className="text-xs text-muted-foreground">Phí hủy</p><p className="font-semibold text-destructive">{formatVND(c.penalty_amount)}</p></div>
             </div>
             {c.refund_status === 'pending' && (
               <div className="mt-4 flex gap-2">
@@ -59,8 +59,8 @@ const RefundApprovalPage: React.FC = () => {
       </div>
 
       {cancels.length === 0 && (
-        <div className="section-card text-center py-12">
-          <FiRefreshCw className="h-12 w-12 mx-auto text-[var(--text-tertiary)]" />
+        <div className="rounded-xl border border-border bg-card text-center py-12 p-6">
+          <FiRefreshCw className="h-12 w-12 mx-auto text-muted-foreground" />
           <p className="mt-4 font-semibold">Không có yêu cầu hoàn tiền</p>
         </div>
       )}

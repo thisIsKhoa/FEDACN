@@ -39,7 +39,7 @@ const DEV_MOCK_USERS: Record<UserRole, AuthUser> = {
     fullName: "Trần Nhân Viên",
     avatarUrl: "",
     role: "staff",
-    branchId: "branch-001",
+    branchId: "branch-0001",
     branchName: "WorkHub Quận 1",
   },
   admin: {
@@ -51,6 +51,17 @@ const DEV_MOCK_USERS: Record<UserRole, AuthUser> = {
     branchId: null,
     branchName: null,
   },
+};
+
+/** DEV: Branch Admin mock — role=admin with a branch assigned */
+const DEV_BRANCH_ADMIN_USER: AuthUser = {
+  id: "dev-branch-admin-001",
+  email: "branch.admin@dev.local",
+  fullName: "Phạm Chi Nhánh Q1",
+  avatarUrl: "",
+  role: "admin",
+  branchId: "branch-0001",
+  branchName: "WorkHub Quận 1",
 };
 
 interface AuthContextValue {
@@ -67,6 +78,8 @@ interface AuthContextValue {
   refreshProfileFromBackend: () => Promise<void>;
   /** DEV ONLY: Instantly log in as a specific role without authentication */
   devLoginAs: (role: UserRole) => void;
+  /** DEV ONLY: Instantly log in as Branch Admin (admin + branch_id set) */
+  devLoginAsBranchAdmin: () => void;
 }
 
 const API_BASE_URL =
@@ -350,6 +363,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setIsLoading(false);
   }, []);
 
+  /** DEV ONLY: skip auth, instantly set Branch Admin mock user */
+  const devLoginAsBranchAdmin = useCallback(() => {
+    setUser(DEV_BRANCH_ADMIN_USER);
+    setBackendStatus("ok");
+    setIsLoading(false);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -364,6 +384,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       logout,
       refreshProfileFromBackend,
       devLoginAs,
+      devLoginAsBranchAdmin,
     }),
     [
       user,
@@ -377,6 +398,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       logout,
       refreshProfileFromBackend,
       devLoginAs,
+      devLoginAsBranchAdmin,
     ],
   );
 

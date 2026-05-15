@@ -34,6 +34,7 @@ import {
   FiLogOut,
   FiMenu,
   FiChevronLeft,
+  FiGrid,
 } from "react-icons/fi";
 
 // ── Pages ──
@@ -56,6 +57,14 @@ import RefundApprovalPage from "./pages/admin/RefundApprovalPage";
 import ExtraServicesPage from "./pages/admin/ExtraServicesPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import ReportsPage from "./pages/admin/ReportsPage";
+// ── Branch Admin Pages ──
+import BADashboardPage from "./pages/branch-admin/BADashboardPage";
+import BAWorkspacePage from "./pages/branch-admin/BAWorkspacePage";
+import BAPricingPage from "./pages/branch-admin/BAPricingPage";
+import BAPoliciesPage from "./pages/branch-admin/BAPoliciesPage";
+import BAStaffPage from "./pages/branch-admin/BAStaffPage";
+import BAMaintenancePage from "./pages/branch-admin/BAMaintenancePage";
+import BAServicesPage from "./pages/branch-admin/BAServicesPage";
 
 // ── Navigation config ──
 interface NavItem {
@@ -77,6 +86,16 @@ const staffNav: NavItem[] = [
   { to: "/staff/checkin", label: "Check-in", icon: <FiCheckCircle className="h-4 w-4" /> },
   { to: "/staff/payments", label: "Thanh toán", icon: <FiDollarSign className="h-4 w-4" /> },
   { to: "/staff/maintenance", label: "Bảo trì", icon: <FiTool className="h-4 w-4" /> },
+];
+
+const branchAdminNav: NavItem[] = [
+  { to: "/branch-admin/dashboard",   label: "Tổng quan",      icon: <FiActivity className="h-4 w-4" /> },
+  { to: "/branch-admin/workspaces",  label: "Không gian",     icon: <FiGrid className="h-4 w-4" />    },
+  { to: "/branch-admin/pricing",     label: "Bảng giá",       icon: <FiTag className="h-4 w-4" />     },
+  { to: "/branch-admin/policies",    label: "Chính sách hủy",  icon: <FiShield className="h-4 w-4" />  },
+  { to: "/branch-admin/staff",       label: "Nhân viên",      icon: <FiUsers className="h-4 w-4" />   },
+  { to: "/branch-admin/maintenance", label: "Bảo trì",        icon: <FiTool className="h-4 w-4" />    },
+  { to: "/branch-admin/services",    label: "Dịch vụ thêm",   icon: <FiCoffee className="h-4 w-4" />  },
 ];
 
 const adminNav: NavItem[] = [
@@ -144,19 +163,24 @@ const AppShell: React.FC = () => {
 
   if (!isAuthenticated || !user) return <LoginPage />;
 
+  const isBranchAdmin = user.role === "admin" && !!user.branchId;
+  const isSuperAdmin  = user.role === "admin" && !user.branchId;
+
   const navItems =
-    user.role === "admin" ? adminNav : user.role === "staff" ? staffNav : customerNav;
+    isBranchAdmin ? branchAdminNav
+    : isSuperAdmin  ? adminNav
+    : user.role === "staff" ? staffNav
+    : customerNav;
   const roleLabel: Record<UserRole, string> = {
     customer: "Khách hàng",
     staff: "Nhân viên",
-    admin: "Quản trị viên",
+    admin: isBranchAdmin ? `Quản lý chi nhánh` : "Quản trị viên",
   };
   const defaultRoute =
-    user.role === "admin"
-      ? "/admin/dashboard"
-      : user.role === "staff"
-        ? "/staff/dashboard"
-        : "/customer/explore";
+    isBranchAdmin ? "/branch-admin/dashboard"
+    : isSuperAdmin  ? "/admin/dashboard"
+    : user.role === "staff" ? "/staff/dashboard"
+    : "/customer/explore";
 
   const backendPillClass =
     backendStatus === "ok"
@@ -335,16 +359,33 @@ const AppShell: React.FC = () => {
               <Route path="/staff/payments" element={<PaymentConfirmPage />} />
               <Route path="/staff/maintenance" element={<MaintenancePage />} />
 
-              {/* Admin */}
-              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-              <Route path="/admin/branches" element={<BranchManagementPage />} />
-              <Route path="/admin/pricing" element={<PricingPage />} />
-              <Route path="/admin/users" element={<UserManagementPage />} />
-              <Route path="/admin/cancellation" element={<CancellationPoliciesPage />} />
-              <Route path="/admin/refunds" element={<RefundApprovalPage />} />
-              <Route path="/admin/services" element={<ExtraServicesPage />} />
-              <Route path="/admin/audit" element={<AuditLogPage />} />
-              <Route path="/admin/reports" element={<ReportsPage />} />
+              {/* Super Admin */}
+              {isSuperAdmin && (
+                <>
+                  <Route path="/admin/dashboard"   element={<AdminDashboardPage />} />
+                  <Route path="/admin/branches"    element={<BranchManagementPage />} />
+                  <Route path="/admin/pricing"     element={<PricingPage />} />
+                  <Route path="/admin/users"       element={<UserManagementPage />} />
+                  <Route path="/admin/cancellation" element={<CancellationPoliciesPage />} />
+                  <Route path="/admin/refunds"     element={<RefundApprovalPage />} />
+                  <Route path="/admin/services"    element={<ExtraServicesPage />} />
+                  <Route path="/admin/audit"       element={<AuditLogPage />} />
+                  <Route path="/admin/reports"     element={<ReportsPage />} />
+                </>
+              )}
+
+              {/* Branch Admin */}
+              {isBranchAdmin && (
+                <>
+                  <Route path="/branch-admin/dashboard"   element={<BADashboardPage />} />
+                  <Route path="/branch-admin/workspaces"  element={<BAWorkspacePage />} />
+                  <Route path="/branch-admin/pricing"     element={<BAPricingPage />} />
+                  <Route path="/branch-admin/policies"    element={<BAPoliciesPage />} />
+                  <Route path="/branch-admin/staff"       element={<BAStaffPage />} />
+                  <Route path="/branch-admin/maintenance" element={<BAMaintenancePage />} />
+                  <Route path="/branch-admin/services"    element={<BAServicesPage />} />
+                </>
+              )}
 
               {/* Default redirect */}
               <Route path="*" element={<Navigate to={defaultRoute} replace />} />

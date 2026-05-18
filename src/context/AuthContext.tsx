@@ -22,6 +22,48 @@ export interface AuthUser {
   branchName: string | null;
 }
 
+/* ── DEV: Mock users for quick role testing ── */
+const DEV_MOCK_USERS: Record<UserRole, AuthUser> = {
+  customer: {
+    id: "dev-customer-001",
+    email: "customer@dev.local",
+    fullName: "Nguyễn Khách Hàng",
+    avatarUrl: "",
+    role: "customer",
+    branchId: null,
+    branchName: null,
+  },
+  staff: {
+    id: "dev-staff-001",
+    email: "staff@dev.local",
+    fullName: "Trần Nhân Viên",
+    avatarUrl: "",
+    role: "staff",
+    branchId: "branch-0001",
+    branchName: "WorkHub Quận 1",
+  },
+  admin: {
+    id: "dev-admin-001",
+    email: "admin@dev.local",
+    fullName: "Lê Quản Trị",
+    avatarUrl: "",
+    role: "admin",
+    branchId: null,
+    branchName: null,
+  },
+};
+
+/** DEV: Branch Admin mock — role=admin with a branch assigned */
+const DEV_BRANCH_ADMIN_USER: AuthUser = {
+  id: "dev-branch-admin-001",
+  email: "branch.admin@dev.local",
+  fullName: "Phạm Chi Nhánh Q1",
+  avatarUrl: "",
+  role: "admin",
+  branchId: "branch-0001",
+  branchName: "WorkHub Quận 1",
+};
+
 interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -34,6 +76,10 @@ interface AuthContextValue {
   resetPasswordForEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfileFromBackend: () => Promise<void>;
+  /** DEV ONLY: Instantly log in as a specific role without authentication */
+  devLoginAs: (role: UserRole) => void;
+  /** DEV ONLY: Instantly log in as Branch Admin (admin + branch_id set) */
+  devLoginAsBranchAdmin: () => void;
 }
 
 const API_BASE_URL =
@@ -310,6 +356,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     setBackendStatus("idle");
   }, []);
 
+  /** DEV ONLY: skip auth, instantly set a mock user */
+  const devLoginAs = useCallback((role: UserRole) => {
+    setUser(DEV_MOCK_USERS[role]);
+    setBackendStatus("ok");
+    setIsLoading(false);
+  }, []);
+
+  /** DEV ONLY: skip auth, instantly set Branch Admin mock user */
+  const devLoginAsBranchAdmin = useCallback(() => {
+    setUser(DEV_BRANCH_ADMIN_USER);
+    setBackendStatus("ok");
+    setIsLoading(false);
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -323,6 +383,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       resetPasswordForEmail,
       logout,
       refreshProfileFromBackend,
+      devLoginAs,
+      devLoginAsBranchAdmin,
     }),
     [
       user,
@@ -335,6 +397,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       resetPasswordForEmail,
       logout,
       refreshProfileFromBackend,
+      devLoginAs,
+      devLoginAsBranchAdmin,
     ],
   );
 

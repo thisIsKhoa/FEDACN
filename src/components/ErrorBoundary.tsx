@@ -31,11 +31,11 @@ class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="error-boundary">
-          <FiAlertTriangle className="h-12 w-12 text-[var(--state-danger)]" />
+          <FiAlertTriangle className="h-12 w-12 text-destructive" />
           <h2>Đã xảy ra lỗi</h2>
           <p>Trang này gặp sự cố. Vui lòng thử tải lại.</p>
           {this.state.error && (
-            <code className="mt-4 text-xs text-[var(--text-tertiary)] bg-[var(--bg-surface-hover)] px-4 py-2 rounded-lg max-w-md overflow-auto">
+            <code className="mt-4 text-xs text-muted-foreground bg-muted px-4 py-2 rounded-lg max-w-md overflow-auto">
               {this.state.error.message}
             </code>
           )}

@@ -12,6 +12,7 @@ import { AuthProvider, useAuth, UserRole } from "./context/AuthContext";
 import { ThemeProvider, useTheme } from "./context/ThemeProvider";
 import { ToastProvider } from "./components/Toast";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { MockDataProvider } from "./context/MockDataContext";
 import { Button } from "./components/ui/button";
 import {
   FiMapPin,
@@ -40,10 +41,9 @@ import {
 // ── Pages ──
 import LoginPage from "./pages/LoginPage";
 import ExplorePage from "./pages/customer/ExplorePage";
-import MyBookingsPage from "./pages/customer/MyBookingsPage";
-import PaymentHistoryPage from "./pages/customer/PaymentHistoryPage";
+import BookingCheckoutPage from "./pages/customer/BookingCheckoutPage";
+import BookingHistoryPage from "./pages/customer/BookingHistoryPage";
 import ProfilePage from "./pages/customer/ProfilePage";
-import PartnerMatchPage from "./pages/customer/PartnerMatchPage";
 import OperationsDashboardPage from "./pages/staff/OperationsDashboardPage";
 import CheckInPage from "./pages/staff/CheckInPage";
 import PaymentConfirmPage from "./pages/staff/PaymentConfirmPage";
@@ -74,11 +74,9 @@ interface NavItem {
 }
 
 const customerNav: NavItem[] = [
-  { to: "/customer/explore", label: "Khám phá", icon: <FiMapPin className="h-4 w-4" /> },
-  { to: "/customer/bookings", label: "Đặt chỗ", icon: <FiCalendar className="h-4 w-4" /> },
-  { to: "/customer/payments", label: "Thanh toán", icon: <FiCreditCard className="h-4 w-4" /> },
-  { to: "/customer/profile", label: "Hồ sơ", icon: <FiUser className="h-4 w-4" /> },
-  { to: "/customer/partners", label: "Đối tác", icon: <FiUsers className="h-4 w-4" /> },
+  { to: "/customer/explore", label: "Đặt chỗ", icon: <FiMapPin className="h-4 w-4" /> },
+  { to: "/customer/history", label: "Lịch sử", icon: <FiCalendar className="h-4 w-4" /> },
+  { to: "/customer/profile", label: "Hồ sơ & Kết nối", icon: <FiUser className="h-4 w-4" /> },
 ];
 
 const staffNav: NavItem[] = [
@@ -348,10 +346,9 @@ const AppShell: React.FC = () => {
             <Routes>
               {/* Customer */}
               <Route path="/customer/explore" element={<ExplorePage />} />
-              <Route path="/customer/bookings" element={<MyBookingsPage />} />
-              <Route path="/customer/payments" element={<PaymentHistoryPage />} />
+              <Route path="/customer/checkout" element={<BookingCheckoutPage />} />
+              <Route path="/customer/history" element={<BookingHistoryPage />} />
               <Route path="/customer/profile" element={<ProfilePage />} />
-              <Route path="/customer/partners" element={<PartnerMatchPage />} />
 
               {/* Staff */}
               <Route path="/staff/dashboard" element={<OperationsDashboardPage />} />
@@ -404,11 +401,13 @@ const AppShell: React.FC = () => {
 const App: React.FC = () => (
   <ThemeProvider>
     <AuthProvider>
-      <ToastProvider>
-        <BrowserRouter>
-          <AppShell />
-        </BrowserRouter>
-      </ToastProvider>
+      <MockDataProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <AppShell />
+          </BrowserRouter>
+        </ToastProvider>
+      </MockDataProvider>
     </AuthProvider>
   </ThemeProvider>
 );

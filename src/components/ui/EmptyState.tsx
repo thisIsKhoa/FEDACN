@@ -1,10 +1,10 @@
 import React from "react";
-import { LucideIcon } from "lucide-react";
+
 import { FiInbox } from "react-icons/fi";
 import { cn } from "../../lib/utils";
 
 interface EmptyStateProps {
-  icon?: React.ComponentType<{ className?: string }> | LucideIcon;
+  icon?: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   action?: React.ReactNode;

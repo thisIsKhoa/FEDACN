@@ -4,6 +4,7 @@ import {
   FiClock, FiTag, FiUsers, FiX, FiCheck, FiPlus, FiMinus, FiMaximize2,
   FiChevronDown, FiCoffee, FiMonitor
 } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 import {
   branches, floors, workspaces, workspaceTypes, pricePolicies,
   getFloorsByBranch, getWorkspacesByFloor, getWorkspaceType, bookings, Workspace
@@ -307,9 +308,41 @@ const BookingPanel: React.FC<{
   selectedHour: number;
   getPrice: () => any;
   onClose: () => void;
-}> = ({ ws, wsType, wsAvail, selectedWs, selectedHour, getPrice, onClose }) => {
+  onBookNow: (endHour: number, services: Record<string, number>, subtotal: number, addonTotal: number) => void;
+}> = ({ ws, wsType, wsAvail, selectedWs, selectedHour, getPrice, onClose, onBookNow }) => {
   const price = getPrice();
   const ZONES_REF = ZONES;
+
+  const [endHour, setEndHour] = useState(Math.min(selectedHour + 2, 22));
+  const [services, setServices] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    setEndHour(Math.max(selectedHour + 1, Math.min(selectedHour + 2, 22)));
+    setServices({});
+  }, [selectedHour, selectedWs]);
+
+  const handleServiceChange = (id: string, isChecked: boolean) => {
+    setServices(prev => {
+      const next = { ...prev };
+      if (isChecked) next[id] = 1;
+      else delete next[id];
+      return next;
+    });
+  };
+
+  const MOCK_SERVICES = [
+    { id: 'coffee', icon: <FiCoffee className="h-3.5 w-3.5" />, name: 'Cà phê', price: 35000 },
+    { id: 'lunch', icon: <span className="text-xs">🍽️</span>, name: 'Cơm trưa', price: 55000 },
+    { id: 'monitor', icon: <FiMonitor className="h-3.5 w-3.5" />, name: 'Màn hình phụ', price: 50000 },
+  ];
+
+  const duration = Math.max(1, endHour - selectedHour);
+  const subtotal = duration * (price?.price || 0);
+  const addonTotal = Object.keys(services).reduce((sum, id) => {
+    const s = MOCK_SERVICES.find(x => x.id === id);
+    return sum + (s?.price || 0);
+  }, 0);
+  const total = subtotal + addonTotal;
 
   return (
     <div className="p-5">
@@ -367,7 +400,11 @@ const BookingPanel: React.FC<{
             </div>
             <div>
               <label htmlFor={`end-time-${selectedWs}`} className="text-xs text-[var(--text-secondary)]">Kết thúc</label>
-              <input id={`end-time-${selectedWs}`} type="time" defaultValue={`${String(Math.min(selectedHour + 2, 22)).padStart(2, '0')}:00`} className="input-field mt-1 text-sm" />
+              <select id={`end-time-${selectedWs}`} value={endHour} onChange={e => setEndHour(Number(e.target.value))} className="input-field mt-1 text-sm bg-transparent border-b border-border focus:outline-none w-full">
+                {Array.from({ length: 23 - selectedHour }, (_, i) => selectedHour + i + 1).map(h => (
+                  <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
@@ -376,24 +413,26 @@ const BookingPanel: React.FC<{
         <div className="rounded-xl bg-[var(--bg-surface-hover)] p-3">
           <p className="text-xs text-[var(--text-tertiary)] mb-2">Dịch vụ thêm</p>
           <div className="space-y-2">
-            {[
-              { id: 'coffee', icon: <FiCoffee className="h-3.5 w-3.5" />, name: 'Cà phê', price: '35.000₫' },
-              { id: 'lunch', icon: <span className="text-xs">🍽️</span>, name: 'Cơm trưa', price: '55.000₫' },
-              { id: 'monitor', icon: <FiMonitor className="h-3.5 w-3.5" />, name: 'Màn hình phụ', price: '50.000₫' },
-            ].map(s => (
+            {MOCK_SERVICES.map(s => (
               <label key={s.id} htmlFor={`addon-${s.id}-${selectedWs}`} className="flex items-center gap-3 text-sm cursor-pointer">
-                <input id={`addon-${s.id}-${selectedWs}`} type="checkbox" className="rounded accent-[var(--brand-primary)]" />
+                <input id={`addon-${s.id}-${selectedWs}`} type="checkbox" checked={!!services[s.id]} onChange={e => handleServiceChange(s.id, e.target.checked)} className="rounded accent-[var(--brand-primary)]" />
                 <span className="flex items-center gap-1.5">{s.icon} {s.name}</span>
-                <span className="ml-auto text-xs text-[var(--text-tertiary)]">+{s.price}</span>
+                <span className="ml-auto text-xs text-[var(--text-tertiary)]">+{formatVND(s.price)}</span>
               </label>
             ))}
           </div>
+        </div>
+
+        {/* Total Price summary */}
+        <div className="flex justify-between items-center pt-2 border-t border-[var(--border-subtle)]">
+          <span className="text-sm font-semibold">Tổng cộng</span>
+          <span className="text-lg font-bold text-[var(--brand-primary)]">{formatVND(total)}</span>
         </div>
       </div>
 
       {/* Book button */}
       {wsAvail === 'available' && (
-        <button className="btn btn-primary w-full mt-5">
+        <button className="btn btn-primary w-full mt-5" onClick={() => onBookNow(endHour, services, subtotal, addonTotal)}>
           <FiCheck className="h-4 w-4" /> Đặt chỗ ngay
         </button>
       )}
@@ -418,6 +457,7 @@ const ExplorePage: React.FC = () => {
   const [showTags, setShowTags] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const navigate = useNavigate();
 
   const branchFloors = useMemo(() => getFloorsByBranch(selectedBranch), [selectedBranch]);
   const currentFloor = selectedFloor || branchFloors[0]?.id || '';
@@ -438,14 +478,37 @@ const ExplorePage: React.FC = () => {
   const formatDateShort = (d: Date) => d.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
 
   const shiftDate = (offset: number) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const d = new Date(selectedDate);
     d.setDate(d.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
+    if (d < today) return; // Prevent picking past dates
     setSelectedDate(d);
   };
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 0.2, 2.5));
   const handleZoomOut = () => setZoom(z => Math.max(z - 0.2, 0.5));
   const handleReset = () => { setZoom(1); setPan({ x: 0, y: 0 }); };
+
+  const handleBookNow = (endHour: number, services: Record<string, number>, subtotal: number, addonTotal: number) => {
+    if (!selectedWsData) return;
+    const price = getPrice(selectedWsData.workspace_type_id);
+    navigate('/customer/checkout', {
+      state: {
+        workspace: selectedWsData,
+        workspaceType: selectedWsType,
+        date: selectedDate,
+        hour: selectedHour,
+        endHour: endHour,
+        services: services,
+        subtotal: subtotal,
+        addonTotal: addonTotal,
+        total: subtotal + addonTotal,
+        price: price
+      }
+    });
+  };
 
   /* Stats */
   const stats = useMemo(() => {
@@ -722,6 +785,7 @@ const ExplorePage: React.FC = () => {
                 selectedHour={selectedHour}
                 getPrice={() => getPrice(selectedWsData.workspace_type_id)}
                 onClose={() => setSelectedWs(null)}
+                onBookNow={handleBookNow}
               />
             </div>
 
@@ -738,6 +802,7 @@ const ExplorePage: React.FC = () => {
                   selectedHour={selectedHour}
                   getPrice={() => getPrice(selectedWsData.workspace_type_id)}
                   onClose={() => setSelectedWs(null)}
+                  onBookNow={handleBookNow}
                 />
               </div>
             </div>

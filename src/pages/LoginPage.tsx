@@ -353,11 +353,11 @@ const LoginPage: React.FC = () => {
           {/* ── DEV: Quick role switcher ── */}
           <div className="mt-6 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/50">
             <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-1.5"><FiZap className="h-3.5 w-3.5" /> Dev Quick Login</p>
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => devLoginAs("customer")} className="flex-1 text-xs cursor-pointer"><FiUser className="h-3.5 w-3.5" /> Customer</Button>
-              <Button variant="outline" size="sm" onClick={() => devLoginAs("staff")} className="flex-1 text-xs cursor-pointer"><FiShield className="h-3.5 w-3.5" /> Staff</Button>
-              <Button variant="outline" size="sm" onClick={() => devLoginAs("admin")} className="flex-1 text-xs cursor-pointer"><FiLock className="h-3.5 w-3.5" /> Admin</Button>
-              <Button variant="outline" size="sm" onClick={() => devLoginAsBranchAdmin()} className="flex-1 text-xs cursor-pointer border-primary/40 text-primary"><FiMapPin className="h-3.5 w-3.5" /> Branch Admin</Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" onClick={() => devLoginAs("customer")} className="w-full text-xs cursor-pointer"><FiUser className="h-3.5 w-3.5" /> Customer</Button>
+              <Button variant="outline" size="sm" onClick={() => devLoginAs("staff")} className="w-full text-xs cursor-pointer"><FiShield className="h-3.5 w-3.5" /> Staff</Button>
+              <Button variant="outline" size="sm" onClick={() => devLoginAs("admin")} className="w-full text-xs cursor-pointer"><FiLock className="h-3.5 w-3.5" /> Admin</Button>
+              <Button variant="outline" size="sm" onClick={() => devLoginAsBranchAdmin()} className="w-full text-xs cursor-pointer"><FiMapPin className="h-3.5 w-3.5" /> Branch Admin</Button>
             </div>
           </div>
 

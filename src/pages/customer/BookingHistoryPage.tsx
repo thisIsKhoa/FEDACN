@@ -62,12 +62,12 @@ const BookingHistoryPage: React.FC = () => {
 
   const handleCancel = () => {
     if (!showCancelModal) return;
-    
+
     // Update local state to reflect cancellation
-    setBookings(prev => prev.map(b => 
+    setBookings(prev => prev.map(b =>
       b.id === showCancelModal ? { ...b, status: 'canceled' } : b
     ));
-    
+
     setShowCancelModal(null);
     setSuccessMessage('Hủy đặt chỗ thành công.');
     setTimeout(() => setSuccessMessage(null), 3000);
@@ -96,9 +96,8 @@ const BookingHistoryPage: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-6 py-3 font-medium text-sm transition-colors relative ${
-              activeTab === tab.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-            }`}
+            className={`px-6 py-3 font-medium text-sm transition-colors relative ${activeTab === tab.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
           >
             {tab.label}
             {activeTab === tab.id && (
@@ -124,21 +123,20 @@ const BookingHistoryPage: React.FC = () => {
                   <span className="px-2.5 py-1 text-xs font-bold rounded bg-primary/10 text-primary tracking-wider font-mono">
                     {booking.code}
                   </span>
-                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                    booking.status === 'confirmed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    booking.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
-                    'bg-red-50 text-red-700 border-red-200'
-                  }`}>
+                  <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${booking.status === 'confirmed' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      booking.status === 'completed' ? 'bg-green-50 text-green-700 border-green-200' :
+                        'bg-red-50 text-red-700 border-red-200'
+                    }`}>
                     {booking.status === 'confirmed' ? 'Đã xác nhận' :
-                     booking.status === 'completed' ? 'Đã hoàn thành' : 'Đã hủy'}
+                      booking.status === 'completed' ? 'Đã hoàn thành' : 'Đã hủy'}
                   </span>
                 </div>
-                
+
                 <h3 className="text-lg font-bold mb-1">{booking.workspaceName}</h3>
                 <p className="text-sm text-muted-foreground flex items-center gap-1.5 mb-4">
                   <FiMapPin className="h-3.5 w-3.5" /> {booking.branchName}
                 </p>
-                
+
                 <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <FiCalendar className="text-muted-foreground" />
@@ -162,8 +160,8 @@ const BookingHistoryPage: React.FC = () => {
                     <Button variant="outline" className="w-full flex gap-2">
                       <FiMaximize /> Mã QR
                     </Button>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setShowCancelModal(booking.id)}
                     >
@@ -195,7 +193,7 @@ const BookingHistoryPage: React.FC = () => {
               <p className="text-muted-foreground text-sm mb-6">
                 Bạn đang yêu cầu hủy đơn đặt chỗ <span className="font-mono font-bold">{selectedCancelBooking.code}</span>.
               </p>
-              
+
               <div className="bg-muted/50 rounded-xl p-4 mb-6 border border-border">
                 <h3 className="text-sm font-semibold mb-2">Chính sách hủy áp dụng:</h3>
                 <ul className="text-sm space-y-2 mb-3">
@@ -218,14 +216,14 @@ const BookingHistoryPage: React.FC = () => {
               </div>
 
               <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1"
                   onClick={() => setShowCancelModal(null)}
                 >
                   Quay lại
                 </Button>
-                <Button 
+                <Button
                   className="flex-1 bg-red-600 hover:bg-red-700 text-white"
                   onClick={handleCancel}
                 >

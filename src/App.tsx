@@ -46,8 +46,8 @@ import BookingHistoryPage from "./pages/customer/BookingHistoryPage";
 import ProfilePage from "./pages/customer/ProfilePage";
 import OperationsDashboardPage from "./pages/staff/OperationsDashboardPage";
 import CheckInPage from "./pages/staff/CheckInPage";
-import PaymentConfirmPage from "./pages/staff/PaymentConfirmPage";
 import MaintenancePage from "./pages/staff/MaintenancePage";
+import WalkinBookingPage from "./pages/staff/WalkinBookingPage";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage";
 import BranchManagementPage from "./pages/admin/BranchManagementPage";
 import PricingPage from "./pages/admin/PricingPage";
@@ -81,8 +81,8 @@ const customerNav: NavItem[] = [
 
 const staffNav: NavItem[] = [
   { to: "/staff/dashboard", label: "Dashboard", icon: <FiActivity className="h-4 w-4" /> },
+  { to: "/staff/booking/new", label: "Đặt chỗ", icon: <FiCalendar className="h-4 w-4" /> },
   { to: "/staff/checkin", label: "Check-in", icon: <FiCheckCircle className="h-4 w-4" /> },
-  { to: "/staff/payments", label: "Thanh toán", icon: <FiDollarSign className="h-4 w-4" /> },
   { to: "/staff/maintenance", label: "Bảo trì", icon: <FiTool className="h-4 w-4" /> },
 ];
 
@@ -344,16 +344,24 @@ const AppShell: React.FC = () => {
           <ErrorBoundary>
             <Routes>
               {/* Customer */}
-              <Route path="/customer/explore" element={<ExplorePage />} />
-              <Route path="/customer/checkout" element={<BookingCheckoutPage />} />
-              <Route path="/customer/history" element={<BookingHistoryPage />} />
-              <Route path="/customer/profile" element={<ProfilePage />} />
+              {user.role === 'customer' && (
+                <>
+                  <Route path="/customer/explore" element={<ExplorePage />} />
+                  <Route path="/customer/checkout" element={<BookingCheckoutPage />} />
+                  <Route path="/customer/history" element={<BookingHistoryPage />} />
+                  <Route path="/customer/profile" element={<ProfilePage />} />
+                </>
+              )}
 
               {/* Staff */}
-              <Route path="/staff/dashboard" element={<OperationsDashboardPage />} />
-              <Route path="/staff/checkin" element={<CheckInPage />} />
-              <Route path="/staff/payments" element={<PaymentConfirmPage />} />
-              <Route path="/staff/maintenance" element={<MaintenancePage />} />
+              {user.role === 'staff' && (
+                <>
+                  <Route path="/staff/dashboard" element={<OperationsDashboardPage />} />
+                  <Route path="/staff/checkin" element={<CheckInPage />} />
+                  <Route path="/staff/maintenance" element={<MaintenancePage />} />
+                  <Route path="/staff/booking/new" element={<WalkinBookingPage />} />
+                </>
+              )}
 
               {/* Super Admin */}
               {isSuperAdmin && (

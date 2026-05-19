@@ -7,8 +7,6 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 export type UserRole = "customer" | "staff" | "admin";
 
@@ -22,7 +20,6 @@ export interface AuthUser {
   branchName: string | null;
 }
 
-/* ── DEV: Mock users for quick role testing ── */
 const DEV_MOCK_USERS: Record<UserRole, AuthUser> = {
   customer: {
     id: "dev-customer-001",
@@ -53,7 +50,6 @@ const DEV_MOCK_USERS: Record<UserRole, AuthUser> = {
   },
 };
 
-/** DEV: Branch Admin mock — role=admin with a branch assigned */
 const DEV_BRANCH_ADMIN_USER: AuthUser = {
   id: "dev-branch-admin-001",
   email: "branch.admin@dev.local",
@@ -70,300 +66,154 @@ interface AuthContextValue {
   isLoading: boolean;
   backendStatus: "idle" | "ok" | "error";
   loginWithGoogle: () => Promise<void>;
-  registerWithEmail: (email: string, password: string, fullName: string) => Promise<void>;
+  registerWithEmail: (email: string, password: string, fullName: string, confirmPassword?: string) => Promise<void>;
   verifyEmailCode: (email: string, code: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfileFromBackend: () => Promise<void>;
-  /** DEV ONLY: Instantly log in as a specific role without authentication */
   devLoginAs: (role: UserRole) => void;
-  /** DEV ONLY: Instantly log in as Branch Admin (admin + branch_id set) */
   devLoginAsBranchAdmin: () => void;
 }
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
 const ROLE_LIST: UserRole[] = ["customer", "staff", "admin"];
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const normalizeRole = (role: unknown): UserRole => {
-  if (typeof role !== "string") {
-    return "customer";
-  }
+  if (typeof role !== "string") return "customer";
   const normalized = role.toLowerCase();
-  return ROLE_LIST.includes(normalized as UserRole)
-    ? (normalized as UserRole)
-    : "customer";
+  return ROLE_LIST.includes(normalized as UserRole) ? (normalized as UserRole) : "customer";
 };
 
-const mapSupabaseUser = (supabaseUser: User | null): AuthUser | null => {
-  if (!supabaseUser) {
-    return null;
-  }
+const mapBackendUser = (dataUser: any): AuthUser => ({
+  id: dataUser.id,
+  email: dataUser.email,
+  fullName: dataUser.fullName,
+  avatarUrl: dataUser.avatarUrl || "",
+  role: normalizeRole(dataUser.role),
+  branchId: dataUser.branchId || null,
+  branchName: dataUser.branchName || null,
+});
 
-  const fullName =
-    (supabaseUser.user_metadata?.full_name as string | undefined) ||
-    (supabaseUser.user_metadata?.name as string | undefined) ||
-    supabaseUser.email ||
-    "User";
-
-  return {
-    id: supabaseUser.id,
-    email: supabaseUser.email ?? "",
-    fullName,
-    avatarUrl:
-      (supabaseUser.user_metadata?.avatar_url as string | undefined) ?? "",
-    role: normalizeRole(supabaseUser.app_metadata?.role),
-    branchId:
-      (supabaseUser.app_metadata?.branch_id as string | undefined) ?? null,
-    branchName:
-      (supabaseUser.app_metadata?.branch_name as string | undefined) ?? null,
-  };
-};
-
-const fetchBackendProfile = async (
-  accessToken: string,
-): Promise<Partial<AuthUser> | null> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as Record<string, unknown>;
-
-    return {
-      id: typeof data.id === "string" ? data.id : undefined,
-      email: typeof data.email === "string" ? data.email : undefined,
-      fullName: typeof data.fullName === "string" ? data.fullName : undefined,
-      avatarUrl:
-        typeof data.avatarUrl === "string" ? data.avatarUrl : undefined,
-      role: normalizeRole(data.role),
-      branchId: typeof data.branchId === "string" ? data.branchId : null,
-      branchName: typeof data.branchName === "string" ? data.branchName : null,
-    };
-  } catch {
-    return null;
-  }
-};
-
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [backendStatus, setBackendStatus] = useState<"idle" | "ok" | "error">(
-    "idle",
-  );
-
-  const syncSession = useCallback(async (session: Session | null) => {
-    const mappedUser = mapSupabaseUser(session?.user ?? null);
-    setUser(mappedUser);
-
-    if (!mappedUser || !session?.access_token) {
-      setBackendStatus("idle");
-      return;
-    }
-
-    const backendProfile = await fetchBackendProfile(session.access_token);
-    if (!backendProfile) {
-      setBackendStatus("error");
-      return;
-    }
-
-    setBackendStatus("ok");
-    setUser((prevUser) => {
-      if (!prevUser) {
-        return null;
-      }
-      return {
-        ...prevUser,
-        ...backendProfile,
-        role: normalizeRole(backendProfile.role ?? prevUser.role),
-      };
-    });
-  }, []);
+  const [backendStatus, setBackendStatus] = useState<"idle" | "ok" | "error">("idle");
 
   useEffect(() => {
-    let active = true;
-
-    const bootstrap = async () => {
-      const { data, error } = await supabase.auth.getSession();
-
-      if (!active) {
-        return;
-      }
-
-      if (error) {
-        setUser(null);
+    const bootstrap = () => {
+      try {
+        const storedUser = localStorage.getItem("workhub_user");
+        const accessToken = localStorage.getItem("workhub_access_token");
+        
+        if (storedUser && accessToken) {
+          setUser(JSON.parse(storedUser));
+          setBackendStatus("ok");
+        } else {
+          setBackendStatus("idle");
+        }
+      } catch (error) {
+        console.error("Failed to restore session from local storage", error);
         setBackendStatus("error");
-        setIsLoading(false);
-        return;
-      }
-
-      await syncSession(data.session ?? null);
-      if (active) {
+      } finally {
         setIsLoading(false);
       }
     };
 
-    void bootstrap();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void syncSession(session);
-    });
-
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-    };
-  }, [syncSession]);
+    bootstrap();
+  }, []);
 
   const refreshProfileFromBackend = useCallback(async () => {
-    const { data, error } = await supabase.auth.getSession();
-    if (error || !data.session?.access_token) {
-      return;
-    }
-
-    const backendProfile = await fetchBackendProfile(data.session.access_token);
-    if (!backendProfile) {
-      setBackendStatus("error");
-      return;
-    }
-
-    setBackendStatus("ok");
-    setUser((prevUser) => {
-      if (!prevUser) {
-        return null;
-      }
-      return {
-        ...prevUser,
-        ...backendProfile,
-        role: normalizeRole(backendProfile.role ?? prevUser.role),
-      };
-    });
+    // Current backend doesn't have an endpoint for this. 
+    // It will be updated when the backend adds /api/auth/me
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    if (!isSupabaseConfigured) {
-      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
-    }
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-
-    if (error) {
-      throw error;
-    }
+    throw new Error("Chức năng đăng nhập Google chưa được hỗ trợ trên hệ thống mới.");
   }, []);
 
-  const registerWithEmail = useCallback(async (email: string, password: string, fullName: string) => {
-    if (!isSupabaseConfigured) {
-      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
-    }
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
+  const registerWithEmail = useCallback(async (email: string, password: string, fullName: string, confirmPassword?: string) => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        fullName, 
+        confirmPassword: confirmPassword || password,
+        phone: "" 
+      }),
     });
 
-    if (error) {
-      throw error;
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.fields) {
+         const firstError = Object.values(data.fields)[0];
+         throw new Error(firstError as string);
+      }
+      throw new Error(data.message || "Đăng ký thất bại");
+    }
+
+    if (data.data?.user && data.data?.accessToken) {
+       const mappedUser = mapBackendUser(data.data.user);
+       localStorage.setItem("workhub_user", JSON.stringify(mappedUser));
+       localStorage.setItem("workhub_access_token", data.data.accessToken);
+       if (data.data.refreshToken) {
+         localStorage.setItem("workhub_refresh_token", data.data.refreshToken);
+       }
+       setUser(mappedUser);
+       setBackendStatus("ok");
     }
   }, []);
 
   const verifyEmailCode = useCallback(async (email: string, code: string) => {
-    if (!isSupabaseConfigured) {
-      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
-    }
-
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: "signup",
-    });
-
-    if (error) {
-      throw error;
-    }
+    throw new Error("Chức năng này không cần thiết trên hệ thống hiện tại.");
   }, []);
 
   const loginWithEmail = useCallback(async (email: string, password: string) => {
-    if (!isSupabaseConfigured) {
-      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
 
-    if (error) {
-      throw error;
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Đăng nhập thất bại");
+    }
+
+    if (data.data?.user && data.data?.accessToken) {
+       const mappedUser = mapBackendUser(data.data.user);
+       localStorage.setItem("workhub_user", JSON.stringify(mappedUser));
+       localStorage.setItem("workhub_access_token", data.data.accessToken);
+       if (data.data.refreshToken) {
+         localStorage.setItem("workhub_refresh_token", data.data.refreshToken);
+       }
+       setUser(mappedUser);
+       setBackendStatus("ok");
     }
   }, []);
 
   const resetPasswordForEmail = useCallback(async (email: string) => {
-    if (!isSupabaseConfigured) {
-      throw new Error("Thiếu VITE_SUPABASE_URL hoặc VITE_SUPABASE_ANON_KEY.");
-    }
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-
-    if (error) {
-      throw error;
-    }
+    throw new Error("Chức năng quên mật khẩu chưa được hỗ trợ.");
   }, []);
 
   const logout = useCallback(async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session?.access_token) {
-      void fetch(`${API_BASE_URL}/api/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${data.session.access_token}`,
-        },
-      });
-    }
-
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
-
+    localStorage.removeItem("workhub_user");
+    localStorage.removeItem("workhub_access_token");
+    localStorage.removeItem("workhub_refresh_token");
     setUser(null);
     setBackendStatus("idle");
   }, []);
 
-  /** DEV ONLY: skip auth, instantly set a mock user */
   const devLoginAs = useCallback((role: UserRole) => {
     setUser(DEV_MOCK_USERS[role]);
     setBackendStatus("ok");
     setIsLoading(false);
   }, []);
 
-  /** DEV ONLY: skip auth, instantly set Branch Admin mock user */
   const devLoginAsBranchAdmin = useCallback(() => {
     setUser(DEV_BRANCH_ADMIN_USER);
     setBackendStatus("ok");
@@ -399,7 +249,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       refreshProfileFromBackend,
       devLoginAs,
       devLoginAsBranchAdmin,
-    ],
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

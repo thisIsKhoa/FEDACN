@@ -291,14 +291,15 @@ export interface AuditLog {
   id: string; actor_user_id: string; actor_role: string;
   action: string; target_table: string; target_id: string;
   metadata: Record<string, unknown>; created_at: string;
+  ip_address: string;
 }
 
 export const auditLogs: AuditLog[] = [
-  { id: 'al-01', actor_user_id: 'user-0001', actor_role: 'customer', action: 'CREATE_BOOKING', target_table: 'bookings', target_id: 'bk-0001', metadata: { workspace: 'HD-01' }, created_at: h(-3) },
-  { id: 'al-02', actor_user_id: 'user-0003', actor_role: 'staff', action: 'CHECKIN', target_table: 'checkin_logs', target_id: 'ci-0001', metadata: { booking_code: 'WH-A3K7P2' }, created_at: h(-2) },
-  { id: 'al-03', actor_user_id: 'user-0004', actor_role: 'admin', action: 'UPDATE_PRICE', target_table: 'price_policies', target_id: 'pp-08', metadata: { old_price: 55000, new_price: 60000 }, created_at: h(-10) },
-  { id: 'al-04', actor_user_id: 'user-0003', actor_role: 'staff', action: 'CONFIRM_PAYMENT', target_table: 'payments', target_id: 'pay-0004', metadata: { method: 'cash', amount: 1450000 }, created_at: h(-71.5) },
-  { id: 'al-05', actor_user_id: 'user-0002', actor_role: 'customer', action: 'CANCEL_BOOKING', target_table: 'bookings', target_id: 'bk-0006', metadata: { reason: 'Thay đổi lịch trình' }, created_at: h(-60) },
+  { id: 'al-01', actor_user_id: 'user-0001', actor_role: 'customer', action: 'CREATE_BOOKING', target_table: 'bookings', target_id: 'bk-0001', metadata: { workspace: 'HD-01' }, created_at: h(-3), ip_address: '192.168.1.45' },
+  { id: 'al-02', actor_user_id: 'user-0003', actor_role: 'staff', action: 'CHECKIN', target_table: 'checkin_logs', target_id: 'ci-0001', metadata: { booking_code: 'WH-A3K7P2' }, created_at: h(-2), ip_address: '10.0.0.12' },
+  { id: 'al-03', actor_user_id: 'user-0004', actor_role: 'admin', action: 'UPDATE_PRICE', target_table: 'price_policies', target_id: 'pp-08', metadata: { old_price: 55000, new_price: 60000 }, created_at: h(-10), ip_address: '10.0.0.1' },
+  { id: 'al-04', actor_user_id: 'user-0003', actor_role: 'staff', action: 'CONFIRM_PAYMENT', target_table: 'payments', target_id: 'pay-0004', metadata: { method: 'cash', amount: 1450000 }, created_at: h(-71.5), ip_address: '10.0.0.12' },
+  { id: 'al-05', actor_user_id: 'user-0002', actor_role: 'customer', action: 'CANCEL_BOOKING', target_table: 'bookings', target_id: 'bk-0006', metadata: { reason: 'Thay đổi lịch trình' }, created_at: h(-60), ip_address: '203.113.152.78' },
 ];
 
 // ── Helper lookup functions ──

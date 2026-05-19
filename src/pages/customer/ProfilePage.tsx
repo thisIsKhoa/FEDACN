@@ -52,7 +52,7 @@ const MOCK_PARTNERS = [
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'network'>('profile');
-  
+
   // Profile State
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -61,10 +61,10 @@ const ProfilePage: React.FC = () => {
     company: 'Freelance',
     contactPublic: true
   });
-  
+
   const [skills, setSkills] = useState(['React', 'Node.js', 'AI']);
   const [interests, setInterests] = useState(['Khởi nghiệp', 'Đọc sách']);
-  
+
   const [newTag, setNewTag] = useState('');
   const [tagType, setTagType] = useState<'skill' | 'interest'>('skill');
 
@@ -102,7 +102,7 @@ const ProfilePage: React.FC = () => {
       <div className="relative rounded-2xl overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-700 h-48 md:h-64 mb-16 shadow-lg">
         {/* Cover image styling/patterns */}
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-        
+
         {/* Avatar */}
         <div className="absolute -bottom-12 left-8 md:left-12 flex items-end">
           <div className="h-28 w-28 md:h-32 md:w-32 rounded-2xl bg-card border-4 border-background flex items-center justify-center shadow-xl overflow-hidden">
@@ -115,7 +115,7 @@ const ProfilePage: React.FC = () => {
             <p className="text-blue-100 font-medium opacity-90">{profileData.profession} @ {profileData.company}</p>
           </div>
         </div>
-        
+
         {/* Action button */}
         <div className="absolute top-4 right-4">
           <Button variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-md">
@@ -134,18 +134,16 @@ const ProfilePage: React.FC = () => {
       <div className="flex px-4 md:px-12 border-b border-border mb-8">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all relative ${
-            activeTab === 'profile' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all relative ${activeTab === 'profile' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
           <FiUser className="h-4 w-4" /> Hồ sơ của tôi
           {activeTab === 'profile' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />}
         </button>
         <button
           onClick={() => setActiveTab('network')}
-          className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all relative ${
-            activeTab === 'network' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-          }`}
+          className={`flex items-center gap-2 px-6 py-4 font-semibold text-sm transition-all relative ${activeTab === 'network' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
         >
           <FiUsers className="h-4 w-4" /> Kết nối & Gợi ý
           {activeTab === 'network' && <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />}
@@ -153,7 +151,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       <div className="px-4 md:px-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* ==================== TAB 1: PROFILE ==================== */}
         {activeTab === 'profile' && (
           <>
@@ -179,29 +177,29 @@ const ProfilePage: React.FC = () => {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Chức danh</label>
-                        <input 
-                          type="text" 
-                          value={profileData.profession} 
-                          onChange={e => setProfileData({...profileData, profession: e.target.value})}
-                          className="input-field" 
+                        <input
+                          type="text"
+                          value={profileData.profession}
+                          onChange={e => setProfileData({ ...profileData, profession: e.target.value })}
+                          className="input-field"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Công ty</label>
-                        <input 
-                          type="text" 
-                          value={profileData.company} 
-                          onChange={e => setProfileData({...profileData, company: e.target.value})}
-                          className="input-field" 
+                        <input
+                          type="text"
+                          value={profileData.company}
+                          onChange={e => setProfileData({ ...profileData, company: e.target.value })}
+                          className="input-field"
                         />
                       </div>
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Giới thiệu bản thân (Bio)</label>
-                      <textarea 
-                        value={profileData.bio} 
-                        onChange={e => setProfileData({...profileData, bio: e.target.value})}
-                        className="input-field min-h-[100px] resize-y" 
+                      <textarea
+                        value={profileData.bio}
+                        onChange={e => setProfileData({ ...profileData, bio: e.target.value })}
+                        className="input-field min-h-[100px] resize-y"
                       />
                     </div>
                   </div>
@@ -227,7 +225,7 @@ const ProfilePage: React.FC = () => {
                   <FiStar className="text-primary" /> Kỹ năng & Sở thích
                 </h2>
                 <p className="text-sm text-muted-foreground mb-6">Thêm các từ khóa để hệ thống có thể gợi ý những đối tác phù hợp nhất với bạn.</p>
-                
+
                 <div className="space-y-6">
                   {/* Skills */}
                   <div>
@@ -257,8 +255,8 @@ const ProfilePage: React.FC = () => {
 
                   {/* Add new tag */}
                   <div className="pt-4 border-t border-border flex items-center gap-3">
-                    <select 
-                      value={tagType} 
+                    <select
+                      value={tagType}
                       onChange={e => setTagType(e.target.value as any)}
                       className="input-field w-32"
                     >
@@ -266,8 +264,8 @@ const ProfilePage: React.FC = () => {
                       <option value="interest">Sở thích</option>
                     </select>
                     <div className="relative flex-1">
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={newTag}
                         onChange={e => setNewTag(e.target.value)}
                         onKeyDown={handleAddTag}
@@ -284,7 +282,7 @@ const ProfilePage: React.FC = () => {
             <div className="space-y-6">
               <section className="bg-card rounded-2xl border border-border p-6 shadow-sm">
                 <h2 className="text-lg font-bold font-heading mb-4">Mức độ hiển thị</h2>
-                
+
                 <div className="flex items-start justify-between gap-4 p-4 rounded-xl border border-border bg-background">
                   <div>
                     <h3 className="text-sm font-semibold mb-1">Công khai liên hệ</h3>
@@ -293,11 +291,11 @@ const ProfilePage: React.FC = () => {
                     </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-1">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
                       checked={profileData.contactPublic}
-                      onChange={e => setProfileData({...profileData, contactPublic: e.target.checked})}
+                      onChange={e => setProfileData({ ...profileData, contactPublic: e.target.checked })}
                     />
                     <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                   </label>
@@ -377,8 +375,8 @@ const ProfilePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     variant="outline"
                     onClick={() => setSelectedPartner(partner)}
                   >
@@ -398,20 +396,20 @@ const ProfilePage: React.FC = () => {
           <div className="bg-card rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-scale-in">
             {/* Modal Header Cover */}
             <div className="h-24 bg-gradient-to-r from-blue-100 to-indigo-100 relative">
-              <button 
+              <button
                 className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/50 flex items-center justify-center hover:bg-white"
                 onClick={() => setSelectedPartner(null)}
               >
                 <FiX />
               </button>
             </div>
-            
+
             <div className="px-6 pb-6 relative">
               {/* Avatar */}
               <div className="h-20 w-20 rounded-2xl bg-white border-4 border-card flex items-center justify-center shadow-sm absolute -top-10 text-3xl font-bold text-primary">
                 {selectedPartner.avatar}
               </div>
-              
+
               <div className="pt-12 mb-6 flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold font-heading">{selectedPartner.name}</h2>

@@ -7,6 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from "react";
+import { supabase } from "../lib/supabase";
 
 export type UserRole = "customer" | "staff" | "admin";
 
@@ -18,6 +19,7 @@ export interface AuthUser {
   role: UserRole;
   branchId: string | null;
   branchName: string | null;
+  phone?: string;
 }
 
 const DEV_MOCK_USERS: Record<UserRole, AuthUser> = {
@@ -66,12 +68,14 @@ interface AuthContextValue {
   isLoading: boolean;
   backendStatus: "idle" | "ok" | "error";
   loginWithGoogle: () => Promise<void>;
-  registerWithEmail: (email: string, password: string, fullName: string, confirmPassword?: string) => Promise<void>;
+  registerWithEmail: (email: string, password: string, fullName: string, confirmPassword?: string, phone?: string) => Promise<void>;
   verifyEmailCode: (email: string, code: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   resetPasswordForEmail: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfileFromBackend: () => Promise<void>;
+  updateProfile: (data: any) => Promise<any>;
+  changePassword: (data: any) => Promise<void>;
   devLoginAs: (role: UserRole) => void;
   devLoginAsBranchAdmin: () => void;
 }
@@ -95,6 +99,7 @@ const mapBackendUser = (dataUser: any): AuthUser => ({
   role: normalizeRole(dataUser.role),
   branchId: dataUser.branchId || null,
   branchName: dataUser.branchName || null,
+  phone: dataUser.phone || "",
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -123,18 +128,76 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     bootstrap();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "USER_UPDATED")) {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/auth/sync`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`
+            }
+          });
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.message || "Không thể đồng bộ người dùng Google");
+          }
+          const userFromDb = await response.json();
+          const mappedUser = mapBackendUser(userFromDb);
+          
+          localStorage.setItem("workhub_user", JSON.stringify(mappedUser));
+          localStorage.setItem("workhub_access_token", session.access_token);
+          setUser(mappedUser);
+          setBackendStatus("ok");
+        } catch (error) {
+          console.error("Error syncing Google user", error);
+          setBackendStatus("error");
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const refreshProfileFromBackend = useCallback(async () => {
-    // Current backend doesn't have an endpoint for this. 
-    // It will be updated when the backend adds /api/auth/me
+    const token = localStorage.getItem("workhub_access_token");
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const resData = await response.json();
+        const mappedUser = mapBackendUser(resData);
+        localStorage.setItem("workhub_user", JSON.stringify(mappedUser));
+        setUser(mappedUser);
+      }
+    } catch (error) {
+      console.error("Failed to refresh profile from backend", error);
+    }
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    throw new Error("Chức năng đăng nhập Google chưa được hỗ trợ trên hệ thống mới.");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/login",
+      },
+    });
+    if (error) throw error;
   }, []);
 
-  const registerWithEmail = useCallback(async (email: string, password: string, fullName: string, confirmPassword?: string) => {
+  const registerWithEmail = useCallback(async (email: string, password: string, fullName: string, confirmPassword?: string, phone?: string) => {
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -143,7 +206,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         password, 
         fullName, 
         confirmPassword: confirmPassword || password,
-        phone: "" 
+        phone: phone || ""
       }),
     });
 
@@ -196,11 +259,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  const updateProfile = useCallback(async (data: any) => {
+    const token = localStorage.getItem("workhub_access_token");
+    if (!token) throw new Error("Chưa đăng nhập");
+
+    const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    const resData = await response.json();
+    if (!response.ok) {
+      throw new Error(resData.message || "Cập nhật hồ sơ thất bại");
+    }
+
+    const updatedUser = mapBackendUser(resData);
+    localStorage.setItem("workhub_user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
+  const changePassword = useCallback(async (data: any) => {
+    const token = localStorage.getItem("workhub_access_token");
+    if (!token) throw new Error("Chưa đăng nhập");
+
+    const response = await fetch(`${API_BASE_URL}/api/users/change-password`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    const resData = await response.json();
+    if (!response.ok) {
+      throw new Error(resData.message || "Đổi mật khẩu thất bại");
+    }
+  }, []);
+
   const resetPasswordForEmail = useCallback(async (email: string) => {
     throw new Error("Chức năng quên mật khẩu chưa được hỗ trợ.");
   }, []);
 
   const logout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Error signing out from Supabase", e);
+    }
     localStorage.removeItem("workhub_user");
     localStorage.removeItem("workhub_access_token");
     localStorage.removeItem("workhub_refresh_token");
@@ -233,6 +344,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       resetPasswordForEmail,
       logout,
       refreshProfileFromBackend,
+      updateProfile,
+      changePassword,
       devLoginAs,
       devLoginAsBranchAdmin,
     }),
@@ -247,6 +360,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       resetPasswordForEmail,
       logout,
       refreshProfileFromBackend,
+      updateProfile,
+      changePassword,
       devLoginAs,
       devLoginAsBranchAdmin,
     ]

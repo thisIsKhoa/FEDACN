@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "../components/ui/button";
-import { FiLoader, FiMapPin, FiMail, FiLock, FiArrowLeft, FiUser, FiShield, FiZap } from "react-icons/fi";
+import { FiLoader, FiMapPin, FiMail, FiLock, FiArrowLeft, FiUser, FiShield, FiZap, FiPhone } from "react-icons/fi";
 
 const LoginPage: React.FC = () => {
   const { loginWithGoogle, loginWithEmail, registerWithEmail, verifyEmailCode, resetPasswordForEmail, isLoading, backendStatus, devLoginAs, devLoginAsBranchAdmin } = useAuth();
@@ -18,6 +18,7 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const handleGoogleLogin = async () => {
     setErrorMessage(null);
@@ -38,7 +39,7 @@ const LoginPage: React.FC = () => {
     if (password.length < 8) { setErrorMessage("Mật khẩu phải có ít nhất 8 ký tự."); return; }
     setErrorMessage(null); setSuccessMessage(null); setIsSubmittingRegister(true);
     try {
-      await registerWithEmail(email, password, fullName, confirmPassword);
+      await registerWithEmail(email, password, fullName, confirmPassword, phone);
       setSuccessMessage("Đăng ký thành công! Đang đăng nhập...");
     } catch (error) {
       setErrorMessage(error instanceof Error && error.message ? error.message : "Đăng ký thất bại.");
@@ -227,6 +228,13 @@ const LoginPage: React.FC = () => {
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground"><FiMail className="h-5 w-5" /></div>
                     <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="input-field !pl-10" placeholder="admin@example.com" required />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Số điện thoại (Tùy chọn)</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-foreground"><FiPhone className="h-5 w-5" /></div>
+                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="input-field !pl-10" placeholder="0901234567" />
                   </div>
                 </div>
                 <div>

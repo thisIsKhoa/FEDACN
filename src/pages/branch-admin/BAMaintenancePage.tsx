@@ -6,17 +6,25 @@ import {
   workspaceMaintenances as allMaintenances,
   type WorkspaceMaintenance,
 } from '../../data/mockData';
+import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { EmptyState } from '../../components/ui/EmptyState';
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
   title, onClose, children,
 }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose}>
-    <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
+    <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md animate-scale-in flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <h2 className="text-base font-bold font-heading">{title}</h2>
-        <button onClick={onClose} className="btn btn-ghost btn-sm p-1"><FiX className="h-4 w-4" /></button>
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
+          <FiX className="h-4 w-4" />
+        </Button>
       </div>
-      <div className="px-6 py-5">{children}</div>
+      <div className="px-6 py-5 overflow-y-auto">{children}</div>
     </div>
   </div>
 );
@@ -26,12 +34,13 @@ const STATUS_FLOW: Array<{ from: WorkspaceMaintenance['status']; to: WorkspaceMa
   { from: 'active', to: 'done', label: 'Hoàn thành' },
 ];
 
-const STATUS_BADGE: Record<WorkspaceMaintenance['status'], string> = {
-  scheduled: 'badge-warning',
-  active: 'badge-info',
-  done: 'badge-success',
-  canceled: 'badge-neutral',
+const STATUS_BADGE: Record<WorkspaceMaintenance['status'], "warning" | "info" | "success" | "neutral"> = {
+  scheduled: 'warning',
+  active: 'info',
+  done: 'success',
+  canceled: 'neutral',
 };
+
 const STATUS_LABEL: Record<WorkspaceMaintenance['status'], string> = {
   scheduled: 'Lên lịch',
   active: 'Đang thực hiện',
@@ -97,6 +106,7 @@ const BAMaintenancePage: React.FC = () => {
   };
 
   const cancelMaintenance = (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy lịch bảo trì này?')) return;
     setMaintenances((prev) =>
       prev.map((m) => (m.id === id ? { ...m, status: 'canceled' } : m))
     );
@@ -109,29 +119,31 @@ const BAMaintenancePage: React.FC = () => {
   const renderRow = (m: WorkspaceMaintenance) => {
     const step = STATUS_FLOW.find((s) => s.from === m.status);
     return (
-      <tr key={m.id}>
-        <td className="font-medium">{getWsName(m.workspace_id)}</td>
-        <td className="text-sm text-muted-foreground">{m.reason || '—'}</td>
-        <td className="font-mono text-xs">{new Date(m.start_at).toLocaleString('vi-VN')}</td>
-        <td className="font-mono text-xs">{new Date(m.end_at).toLocaleString('vi-VN')}</td>
-        <td className="text-center">
-          <span className={`badge ${STATUS_BADGE[m.status]}`}>{STATUS_LABEL[m.status]}</span>
+      <tr key={m.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+        <td className="px-4 py-3 align-middle font-medium">{getWsName(m.workspace_id)}</td>
+        <td className="px-4 py-3 align-middle text-sm text-muted-foreground">{m.reason || '—'}</td>
+        <td className="px-4 py-3 align-middle font-mono text-xs">{new Date(m.start_at).toLocaleString('vi-VN')}</td>
+        <td className="px-4 py-3 align-middle font-mono text-xs">{new Date(m.end_at).toLocaleString('vi-VN')}</td>
+        <td className="px-4 py-3 align-middle text-center">
+          <Badge variant={STATUS_BADGE[m.status]}>{STATUS_LABEL[m.status]}</Badge>
         </td>
-        <td className="text-right">
-          <div className="flex items-center gap-1 justify-end">
+        <td className="px-4 py-3 align-middle text-right">
+          <div className="flex items-center gap-2 justify-end">
             {step && (
-              <button className="btn btn-primary btn-sm" onClick={() => advanceStatus(m.id)}>
+              <Button size="sm" onClick={() => advanceStatus(m.id)}>
                 {step.label}
-              </button>
+              </Button>
             )}
             {m.status === 'scheduled' && (
-              <button
-                className="btn btn-ghost btn-sm p-1 text-destructive hover:bg-destructive/10"
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => cancelMaintenance(m.id)}
                 title="Hủy lịch"
               >
-                <FiX className="h-3.5 w-3.5" />
-              </button>
+                <FiX className="h-4 w-4" />
+              </Button>
             )}
           </div>
         </td>
@@ -140,96 +152,110 @@ const BAMaintenancePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in pb-10">
       {/* Header */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quản lý chi nhánh</p>
-            <h1 className="text-xl font-bold font-heading mt-1">Lịch bảo trì</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {active.length} đang thực hiện · {scheduled.length} lên lịch
-            </p>
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quản lý chi nhánh</p>
+              <h1 className="text-2xl font-bold font-heading mt-1">Lịch bảo trì</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {active.length} đang thực hiện · {scheduled.length} lên lịch
+              </p>
+            </div>
+            <Button onClick={() => setModalOpen(true)}>
+              <FiPlus className="h-4 w-4 mr-2" /> Tạo lịch bảo trì
+            </Button>
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => setModalOpen(true)}>
-            <FiPlus className="h-4 w-4" /> Tạo lịch bảo trì
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {maintenances.length === 0 ? (
-        <div className="rounded-xl border border-border bg-card p-10 flex flex-col items-center gap-3 text-muted-foreground">
-          <FiTool className="h-10 w-10 opacity-30" />
-          <p className="text-sm">Chưa có lịch bảo trì nào.</p>
-        </div>
+        <Card>
+          <EmptyState
+            icon={FiTool}
+            title="Chưa có lịch bảo trì"
+            description="Bạn chưa tạo lịch bảo trì nào cho các không gian trong chi nhánh này."
+            action={
+              <Button onClick={() => setModalOpen(true)}>
+                <FiPlus className="h-4 w-4 mr-2" /> Tạo ngay
+              </Button>
+            }
+          />
+        </Card>
       ) : (
-        <>
+        <div className="grid gap-6">
           {/* Active & Scheduled */}
           {[...active, ...scheduled].length > 0 && (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="font-semibold flex items-center gap-2">
-                  <FiTool className="h-4 w-4 text-primary" /> Đang diễn ra & Sắp tới
-                </h2>
-              </div>
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b border-border px-6 py-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FiTool className="h-5 w-5 text-primary" /> Đang diễn ra & Sắp tới
+                </CardTitle>
+              </CardHeader>
               <div className="overflow-x-auto">
-                <table className="data-table">
-                  <thead>
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/50 text-muted-foreground uppercase text-xs">
                     <tr>
-                      <th>Workspace</th>
-                      <th>Lý do</th>
-                      <th>Bắt đầu</th>
-                      <th>Kết thúc</th>
-                      <th className="text-center">Trạng thái</th>
-                      <th className="text-right">Thao tác</th>
+                      <th className="px-4 py-3 font-semibold">Workspace</th>
+                      <th className="px-4 py-3 font-semibold">Lý do</th>
+                      <th className="px-4 py-3 font-semibold">Bắt đầu</th>
+                      <th className="px-4 py-3 font-semibold">Kết thúc</th>
+                      <th className="px-4 py-3 font-semibold text-center">Trạng thái</th>
+                      <th className="px-4 py-3 font-semibold text-right">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>{[...active, ...scheduled].map(renderRow)}</tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* History */}
           {past.length > 0 && (
-            <div className="rounded-xl border border-border bg-card overflow-hidden">
-              <div className="px-6 py-4 border-b border-border">
-                <h2 className="font-semibold text-muted-foreground">Lịch sử</h2>
-              </div>
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-muted/10 border-b border-border px-6 py-4">
+                <CardTitle className="text-lg text-muted-foreground flex items-center gap-2">
+                  Lịch sử
+                </CardTitle>
+              </CardHeader>
               <div className="overflow-x-auto">
-                <table className="data-table">
-                  <thead>
+                <table className="w-full text-sm text-left opacity-80 hover:opacity-100 transition-opacity">
+                  <thead className="bg-muted/30 text-muted-foreground uppercase text-xs">
                     <tr>
-                      <th>Workspace</th>
-                      <th>Lý do</th>
-                      <th>Bắt đầu</th>
-                      <th>Kết thúc</th>
-                      <th className="text-center">Trạng thái</th>
-                      <th></th>
+                      <th className="px-4 py-3 font-semibold">Workspace</th>
+                      <th className="px-4 py-3 font-semibold">Lý do</th>
+                      <th className="px-4 py-3 font-semibold">Bắt đầu</th>
+                      <th className="px-4 py-3 font-semibold">Kết thúc</th>
+                      <th className="px-4 py-3 font-semibold text-center">Trạng thái</th>
+                      <th className="px-4 py-3 font-semibold"></th>
                     </tr>
                   </thead>
                   <tbody>{past.map(renderRow)}</tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           )}
-        </>
+        </div>
       )}
 
       {/* Create modal */}
       {modalOpen && (
         <Modal title="Tạo lịch bảo trì" onClose={() => setModalOpen(false)}>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {formError && (
-              <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
-                <FiAlertCircle className="h-4 w-4 shrink-0" />
-                {formError}
+              <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+                <FiAlertCircle className="h-5 w-5 shrink-0" />
+                <p>{formError}</p>
               </div>
             )}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Workspace <span className="text-destructive">*</span></label>
+            
+            <div className="space-y-2">
+              <Label htmlFor="workspace_id">Workspace <span className="text-destructive">*</span></Label>
               <select
-                className="input-field"
+                id="workspace_id"
+                className="flex h-10 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                 value={form.workspace_id}
                 onChange={(e) => setForm((p) => ({ ...p, workspace_id: e.target.value }))}
               >
@@ -238,39 +264,47 @@ const BAMaintenancePage: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Thời gian bắt đầu <span className="text-destructive">*</span></label>
-              <input
-                type="datetime-local"
-                className="input-field"
-                value={form.start_at}
-                onChange={(e) => setForm((p) => ({ ...p, start_at: e.target.value }))}
-              />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_at">Bắt đầu <span className="text-destructive">*</span></Label>
+                <Input
+                  id="start_at"
+                  type="datetime-local"
+                  value={form.start_at}
+                  onChange={(e) => setForm((p) => ({ ...p, start_at: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end_at">Kết thúc <span className="text-destructive">*</span></Label>
+                <Input
+                  id="end_at"
+                  type="datetime-local"
+                  value={form.end_at}
+                  onChange={(e) => setForm((p) => ({ ...p, end_at: e.target.value }))}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Thời gian kết thúc <span className="text-destructive">*</span></label>
-              <input
-                type="datetime-local"
-                className="input-field"
-                value={form.end_at}
-                onChange={(e) => setForm((p) => ({ ...p, end_at: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Lý do bảo trì</label>
+            
+            <div className="space-y-2">
+              <Label htmlFor="reason">Lý do bảo trì</Label>
               <textarea
-                className="input-field"
-                rows={2}
-                placeholder="Sửa chữa thiết bị, làm sạch..."
+                id="reason"
+                className="flex w-full rounded-lg border border-input bg-card px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors resize-y min-h-[80px]"
+                rows={3}
+                placeholder="Ví dụ: Sửa chữa thiết bị, làm sạch tổng thể..."
                 value={form.reason}
                 onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))}
               />
             </div>
-            <div className="flex gap-3 justify-end pt-2">
-              <button className="btn btn-secondary btn-sm" onClick={() => setModalOpen(false)}>Hủy</button>
-              <button className="btn btn-primary btn-sm" onClick={saveMaintenance}>
-                <FiCheck className="h-3.5 w-3.5" /> Tạo lịch
-              </button>
+            
+            <div className="flex gap-3 justify-end pt-4 border-t border-border mt-6">
+              <Button variant="outline" onClick={() => setModalOpen(false)}>
+                Hủy
+              </Button>
+              <Button onClick={saveMaintenance}>
+                <FiCheck className="h-4 w-4 mr-2" /> Tạo lịch
+              </Button>
             </div>
           </div>
         </Modal>

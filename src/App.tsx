@@ -53,7 +53,7 @@ import BranchManagementPage from "./pages/admin/BranchManagementPage";
 import PricingPage from "./pages/admin/PricingPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
 import CancellationPoliciesPage from "./pages/admin/CancellationPoliciesPage";
-import RefundApprovalPage from "./pages/admin/RefundApprovalPage";
+
 import ExtraServicesPage from "./pages/admin/ExtraServicesPage";
 import AuditLogPage from "./pages/admin/AuditLogPage";
 import ReportsPage from "./pages/admin/ReportsPage";
@@ -102,7 +102,6 @@ const adminNav: NavItem[] = [
   { to: "/admin/pricing", label: "Bảng giá", icon: <FiTag className="h-4 w-4" /> },
   { to: "/admin/users", label: "Người dùng", icon: <FiUsers className="h-4 w-4" /> },
   { to: "/admin/cancellation", label: "Chính sách hủy", icon: <FiShield className="h-4 w-4" /> },
-  { to: "/admin/refunds", label: "Hoàn tiền", icon: <FiRefreshCw className="h-4 w-4" /> },
   { to: "/admin/services", label: "Dịch vụ thêm", icon: <FiCoffee className="h-4 w-4" /> },
   { to: "/admin/audit", label: "Nhật ký", icon: <FiFileText className="h-4 w-4" /> },
   { to: "/admin/reports", label: "Báo cáo", icon: <FiBarChart2 className="h-4 w-4" /> },
@@ -364,7 +363,7 @@ const AppShell: React.FC = () => {
                   <Route path="/admin/pricing"     element={<PricingPage />} />
                   <Route path="/admin/users"       element={<UserManagementPage />} />
                   <Route path="/admin/cancellation" element={<CancellationPoliciesPage />} />
-                  <Route path="/admin/refunds"     element={<RefundApprovalPage />} />
+
                   <Route path="/admin/services"    element={<ExtraServicesPage />} />
                   <Route path="/admin/audit"       element={<AuditLogPage />} />
                   <Route path="/admin/reports"     element={<ReportsPage />} />

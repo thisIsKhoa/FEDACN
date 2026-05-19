@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiCoffee, FiPrinter, FiPlus, FiX, FiCheck, FiEdit2 } from 'react-icons/fi';
+import { FiCoffee, FiPrinter, FiPlus, FiX, FiCheck, FiEdit2, FiTrash2, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { extraServices as allServices, type ExtraService } from '../../data/mockData';
 import { formatVND } from '../../utils/formatters';
@@ -34,11 +34,7 @@ const BAServicesPage: React.FC = () => {
   const { user } = useAuth();
   const branchId = user!.branchId!;
 
-  // Branch-scoped services only (branch_id matches)
-  // For mock data compatibility, we treat all services as branch-scoped since branch_id isn't on the current ExtraService interface
-  // In a real app this would filter by branch_id === branchId
   const [services, setServices] = useState<ExtraService[]>(
-    // Show only services that match this branch (mock: show first 4 as "branch services")
     allServices.slice(0, 4).map((s) => ({ ...s }))
   );
 
@@ -51,19 +47,41 @@ const BAServicesPage: React.FC = () => {
     price: '',
     is_active: true,
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMsg, setSuccessMsg] = useState('');
+
+  const showSuccess = (msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(''), 3000);
+  };
 
   const openAdd = () => {
     setForm({ code: '', name: '', service_type: 'drink', unit: 'ly', price: '', is_active: true });
+    setErrors({});
     setModal({ type: 'add' });
   };
 
   const openEdit = (s: ExtraService) => {
     setForm({ code: s.code, name: s.name, service_type: s.service_type, unit: s.unit, price: String(s.price), is_active: s.is_active });
+    setErrors({});
     setModal({ type: 'edit', service: s });
   };
 
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!form.code.trim()) newErrors.code = 'Mã dịch vụ không được để trống';
+    if (!form.name.trim()) newErrors.name = 'Tên dịch vụ không được để trống';
+    if (!form.unit.trim()) newErrors.unit = 'Đơn vị không được để trống';
+    const priceNum = parseInt(form.price.replace(/\D/g, ''));
+    if (isNaN(priceNum) || priceNum < 0) newErrors.price = 'Giá phải là số hợp lệ';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const save = () => {
-    if (!form.code.trim() || !form.name.trim() || !form.unit.trim()) return;
+    if (!validate()) return;
+    
     const price = parseInt(form.price.replace(/\D/g, '')) || 0;
     if (modal?.type === 'add') {
       const newSvc: ExtraService = {
@@ -76,6 +94,7 @@ const BAServicesPage: React.FC = () => {
         is_active: form.is_active,
       };
       setServices((prev) => [...prev, newSvc]);
+      showSuccess('Thêm dịch vụ thành công');
     } else if (modal?.type === 'edit') {
       setServices((prev) =>
         prev.map((s) =>
@@ -84,6 +103,7 @@ const BAServicesPage: React.FC = () => {
             : s
         )
       );
+      showSuccess('Cập nhật dịch vụ thành công');
     }
     setModal(null);
   };
@@ -94,8 +114,22 @@ const BAServicesPage: React.FC = () => {
     );
   };
 
+  const deleteService = (id: string, name: string) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn dịch vụ "${name}"? Hành động này không thể hoàn tác.`)) {
+      setServices(prev => prev.filter(s => s.id !== id));
+      showSuccess('Đã xóa dịch vụ');
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in relative">
+      {successMsg && (
+        <div className="fixed top-4 right-4 z-50 animate-slide-up flex items-center gap-2 bg-success text-success-foreground px-4 py-3 rounded-xl shadow-xl">
+          <FiCheck className="h-5 w-5" />
+          <p className="font-medium text-sm">{successMsg}</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -166,6 +200,13 @@ const BAServicesPage: React.FC = () => {
                 >
                   {s.is_active ? <FiX className="h-3.5 w-3.5" /> : <FiCheck className="h-3.5 w-3.5" />}
                 </button>
+                <button
+                  className="btn btn-ghost btn-sm text-destructive hover:bg-destructive/10 px-2"
+                  onClick={() => deleteService(s.id, s.name)}
+                  title="Xóa vĩnh viễn"
+                >
+                  <FiTrash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           ))}
@@ -183,11 +224,15 @@ const BAServicesPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium mb-1.5">Mã dịch vụ <span className="text-destructive">*</span></label>
                 <input
-                  className="input-field font-mono"
+                  className={`input-field font-mono ${errors.code ? 'border-destructive focus:ring-destructive' : ''}`}
                   placeholder="COFFEE"
                   value={form.code}
-                  onChange={(e) => setForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                  onChange={(e) => {
+                    setForm((p) => ({ ...p, code: e.target.value.toUpperCase() }));
+                    if (errors.code) setErrors(p => ({ ...p, code: '' }));
+                  }}
                 />
+                {errors.code && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><FiAlertCircle className="shrink-0" /> {errors.code}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1.5">Loại dịch vụ</label>
@@ -206,33 +251,45 @@ const BAServicesPage: React.FC = () => {
             <div>
               <label className="block text-sm font-medium mb-1.5">Tên dịch vụ <span className="text-destructive">*</span></label>
               <input
-                className="input-field"
+                className={`input-field ${errors.name ? 'border-destructive focus:ring-destructive' : ''}`}
                 placeholder="Cà phê đặc biệt"
                 value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                onChange={(e) => {
+                  setForm((p) => ({ ...p, name: e.target.value }));
+                  if (errors.name) setErrors(p => ({ ...p, name: '' }));
+                }}
               />
+              {errors.name && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><FiAlertCircle className="shrink-0" /> {errors.name}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1.5">Đơn vị <span className="text-destructive">*</span></label>
                 <input
-                  className="input-field"
+                  className={`input-field ${errors.unit ? 'border-destructive focus:ring-destructive' : ''}`}
                   placeholder="ly, trang, phần..."
                   value={form.unit}
-                  onChange={(e) => setForm((p) => ({ ...p, unit: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((p) => ({ ...p, unit: e.target.value }));
+                    if (errors.unit) setErrors(p => ({ ...p, unit: '' }));
+                  }}
                 />
+                {errors.unit && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><FiAlertCircle className="shrink-0" /> {errors.unit}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1.5">Giá (VND)</label>
+                <label className="block text-sm font-medium mb-1.5">Giá (VND) <span className="text-destructive">*</span></label>
                 <input
                   type="number"
                   min={0}
                   step={1000}
-                  className="input-field"
+                  className={`input-field ${errors.price ? 'border-destructive focus:ring-destructive' : ''}`}
                   placeholder="0"
                   value={form.price}
-                  onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
+                  onChange={(e) => {
+                    setForm((p) => ({ ...p, price: e.target.value }));
+                    if (errors.price) setErrors(p => ({ ...p, price: '' }));
+                  }}
                 />
+                {errors.price && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><FiAlertCircle className="shrink-0" /> {errors.price}</p>}
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -245,14 +302,13 @@ const BAServicesPage: React.FC = () => {
               />
               <label htmlFor="svc-active" className="text-sm font-medium">Kích hoạt dịch vụ</label>
             </div>
-            <div className="flex gap-3 justify-end pt-2">
+            <div className="flex gap-3 justify-end pt-4 border-t border-border mt-4">
               <button className="btn btn-secondary btn-sm" onClick={() => setModal(null)}>Hủy</button>
               <button
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
                 onClick={save}
-                disabled={!form.code.trim() || !form.name.trim() || !form.unit.trim()}
               >
-                <FiCheck className="h-3.5 w-3.5" /> Lưu
+                <FiCheck className="h-3.5 w-3.5" /> Lưu dịch vụ
               </button>
             </div>
           </div>

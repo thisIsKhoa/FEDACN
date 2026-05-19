@@ -19,13 +19,6 @@ const LoginPage: React.FC = () => {
   const [fullName, setFullName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otpCode, setOtpCode] = useState("");
-
-  const backendStatusText = useMemo(() => {
-    if (backendStatus === "ok") return "Backend đã kết nối";
-    if (backendStatus === "error") return "Backend chưa kết nối";
-    return "Đang chờ đăng nhập để kiểm tra backend";
-  }, [backendStatus]);
-
   const handleGoogleLogin = async () => {
     setErrorMessage(null);
     setIsSubmittingGoogle(true);
@@ -42,12 +35,11 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     if (!fullName || !email || !password || !confirmPassword) { setErrorMessage("Vui lòng điền đầy đủ thông tin."); return; }
     if (password !== confirmPassword) { setErrorMessage("Mật khẩu xác nhận không khớp."); return; }
-    if (password.length < 6) { setErrorMessage("Mật khẩu phải có ít nhất 6 ký tự."); return; }
+    if (password.length < 8) { setErrorMessage("Mật khẩu phải có ít nhất 8 ký tự."); return; }
     setErrorMessage(null); setSuccessMessage(null); setIsSubmittingRegister(true);
     try {
-      await registerWithEmail(email, password, fullName);
-      setSuccessMessage("Đăng ký thành công! Vui lòng kiểm tra email để lấy mã xác nhận.");
-      setView("verify_otp");
+      await registerWithEmail(email, password, fullName, confirmPassword);
+      setSuccessMessage("Đăng ký thành công! Đang đăng nhập...");
     } catch (error) {
       setErrorMessage(error instanceof Error && error.message ? error.message : "Đăng ký thất bại.");
     } finally {
@@ -334,15 +326,6 @@ const LoginPage: React.FC = () => {
               </button>
             </>
           )}
-
-          {/* Backend status */}
-          <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              backendStatus === "ok" ? "bg-green-500" : backendStatus === "error" ? "bg-red-500" : "bg-gray-400"
-            }`} />
-            {backendStatusText}
-          </div>
-
           {/* Error message */}
           {errorMessage && (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400 animate-scale-in">

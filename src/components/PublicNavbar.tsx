@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "./ui/button";
-import { FiMapPin, FiMenu, FiX } from "react-icons/fi";
+import { FiMenu, FiX } from "react-icons/fi";
+import Logo from "./Logo";
 
 const navLinks = [
   { label: "Dịch vụ",   to: "/#services"  },
@@ -31,13 +32,11 @@ const PublicNavbar: React.FC = () => {
 
   const handleDashboard = () => {
     if (isAuthenticated && user) {
-      const route =
-        user.role === "admin"
-          ? user.branchId ? "/branch-admin/dashboard" : "/admin/dashboard"
-          : user.role === "staff"
-          ? "/staff/dashboard"
-          : "/customer/explore";
-      navigate(route);
+      const defaultRoute =
+        user.role === "admin" ? (user.branchId ? "/branch-admin/dashboard" : "/admin/dashboard")
+        : user.role === "staff" ? "/staff/dashboard"
+        : "/customer/explore";
+      navigate(defaultRoute);
     } else {
       navigate("/login");
     }
@@ -49,13 +48,12 @@ const PublicNavbar: React.FC = () => {
    */
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, to: string) => {
     if (to.startsWith("/#")) {
-      e.preventDefault();
-      const id = to.slice(2); // e.g. "services"
+      const id = to.replace("/#", "");
       if (location.pathname === "/") {
+        e.preventDefault();
         document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
       } else {
-        // Navigate to home then scroll after mount
-        navigate("/");
+        // Redirect to home then scroll
         setTimeout(() => {
           document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
         }, 400);
@@ -74,13 +72,8 @@ const PublicNavbar: React.FC = () => {
     >
       <nav className="flex justify-between items-center h-20 px-6 md:px-8 max-w-7xl mx-auto">
         {/* ── Logo ── */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
-            <FiMapPin className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-            CoSpace
-          </span>
+        <Link to="/" className="flex items-center group">
+          <Logo className="group-hover:scale-[1.02] transition-transform" height="44px" />
         </Link>
 
         {/* ── Desktop nav links ── */}

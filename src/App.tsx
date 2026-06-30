@@ -12,6 +12,7 @@ import { AuthProvider, useAuth, UserRole } from "./context/AuthContext";
 import { ThemeProvider, useTheme } from "./context/ThemeProvider";
 import { ToastProvider } from "./components/Toast";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Logo from "./components/Logo";
 import { MockDataProvider } from "./context/MockDataContext";
 import { Button } from "./components/ui/button";
 import {
@@ -243,15 +244,12 @@ const AppShell: React.FC = () => {
       >
         {/* Logo */}
         <div
-          className={`flex items-center gap-3 px-5 h-16 border-b border-sidebar-border shrink-0 ${collapsed ? "justify-center px-3" : ""}`}
+          className={`flex items-center px-5 h-16 border-b border-sidebar-border shrink-0 ${collapsed ? "justify-center px-3" : ""}`}
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shrink-0 shadow-md shadow-blue-500/25">
-            <FiMapPin className="h-4.5 w-4.5 text-white" />
-          </div>
-          {!collapsed && (
-            <span className="text-lg font-bold tracking-tight font-heading bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-              WorkHub
-            </span>
+          {collapsed ? (
+            <Logo iconOnly height="32px" />
+          ) : (
+            <Logo className="fill-slate-900 dark:fill-white" height="36px" />
           )}
         </div>
 

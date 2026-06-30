@@ -4,7 +4,7 @@ import {
   FiClock, FiTag, FiUsers, FiX, FiCheck, FiPlus, FiMinus, FiMaximize2,
   FiChevronDown, FiCoffee, FiMonitor
 } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   branches, floors, workspaces, workspaceTypes, pricePolicies,
   getFloorsByBranch, getWorkspacesByFloor, getWorkspaceType, bookings, Workspace
@@ -449,15 +449,38 @@ const BookingPanel: React.FC<{
 /* ── Main Explore Page ── */
 const ExplorePage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('map');
-  const [selectedBranch, setSelectedBranch] = useState(branches[0].id);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Retrieve initial branch ID from search params (?branchId=...) or navigation state
+  const initialBranchId = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const qBranchId = params.get('branchId');
+    if (qBranchId && branches.some(b => b.id === qBranchId)) {
+      return qBranchId;
+    }
+    const stateBranchId = (location.state as { branchId?: string })?.branchId;
+    if (stateBranchId && branches.some(b => b.id === stateBranchId)) {
+      return stateBranchId;
+    }
+    return branches[0]?.id || '';
+  }, [location.search, location.state]);
+
+  const [selectedBranch, setSelectedBranch] = useState(initialBranchId);
   const [selectedFloor, setSelectedFloor] = useState('');
+
+  // Sync state if initial branch selection changes
+  useEffect(() => {
+    setSelectedBranch(initialBranchId);
+    setSelectedFloor('');
+  }, [initialBranchId]);
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedHour, setSelectedHour] = useState(new Date().getHours());
   const [selectedWs, setSelectedWs] = useState<string | null>(null);
   const [showTags, setShowTags] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
-  const navigate = useNavigate();
 
   const branchFloors = useMemo(() => getFloorsByBranch(selectedBranch), [selectedBranch]);
   const currentFloor = selectedFloor || branchFloors[0]?.id || '';

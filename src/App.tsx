@@ -40,6 +40,8 @@ import {
 
 // ── Pages ──
 import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
+import LocationsPage from "./pages/LocationPage";
 import ExplorePage from "./pages/customer/ExplorePage";
 import BookingCheckoutPage from "./pages/customer/BookingCheckoutPage";
 import BookingHistoryPage from "./pages/customer/BookingHistoryPage";
@@ -158,7 +160,21 @@ const AppShell: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated || !user) return <LoginPage />;
+  // ── Public Routes ──
+  if (location.pathname === "/") {
+    return <LandingPage />;
+  }
+  if (location.pathname === "/locations") {
+    return <LocationsPage />;
+  }
+
+  // ── Auth Check ──
+  if (!isAuthenticated || !user) {
+    if (location.pathname === "/login") {
+      return <LoginPage />;
+    }
+    return <Navigate to="/login" replace />;
+  }
 
   const isBranchAdmin = user.role === "admin" && !!user.branchId;
   const isSuperAdmin  = user.role === "admin" && !user.branchId;
@@ -178,6 +194,18 @@ const AppShell: React.FC = () => {
     : isSuperAdmin  ? "/admin/dashboard"
     : user.role === "staff" ? "/staff/dashboard"
     : "/customer/explore";
+
+  // Redirect authenticated user away from login page
+  if (location.pathname === "/login") {
+    const params = new URLSearchParams(location.search);
+    const redirectUrl = params.get("redirect") || (location.state as { redirect?: string })?.redirect;
+    const branchId = params.get("branchId") || (location.state as { branchId?: string })?.branchId;
+    if (redirectUrl) {
+      const fullRedirect = branchId ? `${redirectUrl}?branchId=${branchId}` : redirectUrl;
+      return <Navigate to={fullRedirect} replace />;
+    }
+    return <Navigate to={defaultRoute} replace />;
+  }
 
   const backendPillClass =
     backendStatus === "ok"
